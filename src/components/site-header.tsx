@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Avatar } from "@/components/avatar";
+import { AccountMenu } from "@/components/account-menu";
 import { LogoMark, PlusIcon } from "@/components/icons";
 import type { Person } from "@/domain/views";
 
@@ -63,7 +63,7 @@ export function SiteHeader({ account, current }: SiteHeaderProps) {
           >
             <PlusIcon size={20} />
           </Link>
-          <Avatar person={account} size={40} alt={`Signed in as ${account.name}`} />
+          <AccountMenu account={account} />
         </div>
       </div>
     </header>

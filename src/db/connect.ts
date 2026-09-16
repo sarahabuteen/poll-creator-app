@@ -17,9 +17,17 @@ export type Connection = {
 /** Hosted Postgres when DATABASE_URL is set; otherwise a local PGlite database (dev and tests only). */
 export function connect({ DATABASE_URL, PGLITE_DATA_DIR }: Pick<Env, "DATABASE_URL" | "PGLITE_DATA_DIR">): Connection {
   if (DATABASE_URL) {
-    // Neon's pooled connection string runs through PgBouncer, which doesn't
-    // support prepared statements.
-    const client = postgres(DATABASE_URL, { prepare: false, onnotice: () => {} });
+    const client = postgres(DATABASE_URL, {
+      // Neon's pooled connection string runs through PgBouncer, which doesn't
+      // support prepared statements.
+      prepare: false,
+      onnotice: () => {},
+      // Fail fast and drop idle sockets: after a network blip (or a frozen
+      // serverless instance) a stale connection otherwise hangs requests for minutes.
+      connect_timeout: 10,
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+    });
     return {
       db: drizzlePostgres(client, { schema }) as unknown as Db,
       driver: "postgres",
