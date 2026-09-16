@@ -59,7 +59,24 @@ export function generateSlug(): string {
   return Buffer.from(bytes).toString("base64url");
 }
 
-export async function createPoll(db: Db, creatorId: string, rawInput: CreatePollInput, now = new Date()) {
+/** True when a write failed on a specific unique constraint (Postgres code 23505). */
+function isUniqueViolation(error: unknown, constraint: string): boolean {
+  for (let current: unknown = error; current; current = (current as { cause?: unknown }).cause) {
+    const candidate = current as { code?: string; constraint?: string; constraint_name?: string };
+    if (candidate.code === "23505" && (candidate.constraint ?? candidate.constraint_name) === constraint) return true;
+  }
+  return false;
+}
+
+const SLUG_ATTEMPTS = 3;
+
+export async function createPoll(
+  db: Db,
+  creatorId: string,
+  rawInput: CreatePollInput,
+  now = new Date(),
+  { makeSlug = generateSlug }: { makeSlug?: () => string } = {},
+) {
   const input = parseInput(createPollInput, rawInput);
   assertValidClosingTime(input.closesAt, now);
 
@@ -71,11 +88,28 @@ export async function createPoll(db: Db, creatorId: string, rawInput: CreatePoll
     throw new PollRuleError("INVALID_INPUT", "Pick-up-to-N polls allow between 2 and the number of options.");
   }
 
+  // 80 random bits make a clash vanishingly rare, but a clash must still never surface as an error.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await insertPoll(db, creatorId, input, now, makeSlug());
+    } catch (error) {
+      if (attempt >= SLUG_ATTEMPTS || !isUniqueViolation(error, "polls_slug_unique")) throw error;
+    }
+  }
+}
+
+async function insertPoll(
+  db: Db,
+  creatorId: string,
+  input: ReturnType<typeof createPollInput.parse>,
+  now: Date,
+  slug: string,
+) {
   return db.transaction(async (tx) => {
     const [poll] = await tx
       .insert(polls)
       .values({
-        slug: generateSlug(),
+        slug,
         creatorId,
         title: input.title,
         voteType: input.voteType,

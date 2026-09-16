@@ -11,7 +11,7 @@ const holder = vi.hoisted(() => ({ connection: undefined as Connection | undefin
 vi.mock("@/db/client", () => ({ getDb: () => holder.connection!.db }));
 
 const auth = await import("./auth/[...all]/route");
-const { POST: createPoll } = await import("./creator/polls/route");
+const { GET: listPolls, POST: createPoll } = await import("./creator/polls/route");
 const { GET: getCreatorPoll } = await import("./creator/polls/[slug]/route");
 const { POST: moderate } = await import("./creator/polls/[slug]/suggestions/[optionId]/[action]/route");
 const { POST: endVoting } = await import("./creator/polls/[slug]/end/route");
@@ -112,6 +112,19 @@ describe("creator endpoints", () => {
       ctx({ slug: "pizza-night" }),
     );
     expect(forged.status).toBe(401);
+  });
+
+  it("list only the signed-in creator's polls for the dashboard", async () => {
+    expect((await listPolls(request("/api/creator/polls"))).status).toBe(401);
+
+    const sample = await (await listPolls(request("/api/creator/polls", { cookie: await logInAsSampleCreator() }))).json();
+    expect(sample.polls.map((poll: { slug: string }) => poll.slug).sort()).toEqual(
+      ["birthday-brunch", "friday-film-club", "lake-weekend", "meal-out", "pizza-night"],
+    );
+
+    const newcomer = await listPolls(request("/api/creator/polls", { cookie: await signUp("dashboard-new@example.com") }));
+    expect(newcomer.headers.get("cache-control")).toBe("no-store");
+    expect(await newcomer.json()).toEqual({ polls: [] });
   });
 
   it("hide other creators' polls as not found, and refuse to act on them", async () => {
