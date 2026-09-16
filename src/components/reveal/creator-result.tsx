@@ -12,7 +12,7 @@ import { deriveResults } from "@/lib/results";
  * The organiser's settled poll: the same reveal the crew sees, plus the
  * controls that only the organiser has (the link, and reopening voting).
  */
-export function CreatorResult({ poll, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
+export function CreatorResult({ poll, shareUrl, revealKey }: { poll: CreatorPollView; shareUrl: string; revealKey?: string }) {
   const [reopening, setReopening] = useState<"reopen" | "tie" | null>(null);
   const { state: linkState, copy } = useCopy();
   const tied = deriveResults(poll.options).leaders.length > 1;
@@ -21,6 +21,7 @@ export function CreatorResult({ poll, shareUrl }: { poll: CreatorPollView; share
     <>
       <ResultReveal
         audience="creator"
+        revealKey={revealKey}
         poll={poll}
         shareUrl={shareUrl}
         tieAction={

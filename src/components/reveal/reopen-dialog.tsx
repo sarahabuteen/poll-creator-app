@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { closingFocusId, ClosingTimeField, useClosingTime } from "@/components/create/closing-time-field";
 import { FormAlert } from "@/components/forms/form-alert";
 import { SheetDialog } from "@/components/vote/sheet-dialog";
-import { failureCopy, loginUrlForCurrentPage, reopenVoting } from "@/lib/api/client";
+import { usePollBackend } from "@/components/poll/poll-backend";
+import { failureCopy } from "@/lib/api/client";
 import { closingTimeError } from "@/lib/create/closing";
 
 type ReopenDialogProps = {
@@ -21,7 +21,7 @@ type ReopenDialogProps = {
  * one-tap action) and always comes with a fresh closing time.
  */
 export function ReopenDialog({ open, slug, breakingTie, onClose }: ReopenDialogProps) {
-  const router = useRouter();
+  const backend = usePollBackend();
   const closing = useClosingTime();
   const [error, setError] = useState<string | undefined>();
   const [failure, setFailure] = useState<string | null>(null);
@@ -35,14 +35,14 @@ export function ReopenDialog({ open, slug, breakingTie, onClose }: ReopenDialogP
     if (invalid) return document.getElementById(closingFocusId(closing, "reopen-closing"))?.focus();
 
     setPending(true);
-    const result = await reopenVoting(slug, closing.closesAt!);
+    const result = await backend.reopenVoting(slug, closing.closesAt!);
     if (result.ok || result.error.code === "POLL_ALREADY_OPEN") {
       // The page re-renders as the live poll.
-      router.refresh();
+      backend.refreshPage();
       return onClose();
     }
     setPending(false);
-    if (result.status === 401) return window.location.assign(loginUrlForCurrentPage());
+    if (result.status === 401) return backend.onUnauthenticated();
     setFailure(
       result.error.code === "CLOSING_TIME_INVALID"
         ? result.error.message

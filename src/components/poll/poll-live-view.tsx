@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DecisionToast } from "@/components/poll/decision-toast";
 import { LEADER_CARD_ID, LeaderCard } from "@/components/poll/leader-card";
@@ -11,7 +10,8 @@ import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-ca
 import { useLivePoll } from "@/components/poll/use-live-poll";
 import { useRaceAnnouncement } from "@/components/poll/use-race-announcement";
 import type { CreatorPollView, SuggestionView } from "@/domain/views";
-import { endVoting, failureCopy, loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
+import { usePollBackend } from "@/components/poll/poll-backend";
+import { failureCopy, type ModerationAction } from "@/lib/api/client";
 import type { ApiResult } from "@/lib/api/types";
 import { applyOverlays, type ModerationOverlay } from "@/lib/live/overlay";
 import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
@@ -41,7 +41,7 @@ function failureMessage(result: Extract<ApiResult<unknown>, { ok: false }>): str
 
 /** The creator's live results: polled from the API, with moderation sent back to it. */
 export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
-  const router = useRouter();
+  const backend = usePollBackend();
   const live = useLivePoll(initial);
   const [ending, setEnding] = useState(false);
   const [overlays, setOverlays] = useState<ModerationOverlay[]>([]);
@@ -105,7 +105,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
     const clear = () => setOverlays((current) => current.filter((item) => item.suggestion.id !== suggestion.id));
     setOverlays((current) => [...current.filter((item) => item.suggestion.id !== suggestion.id), { suggestion, to }]);
 
-    const result = await moderateSuggestion(view.slug, suggestion.id, action);
+    const result = await backend.moderate(view.slug, suggestion.id, action);
     if (result.ok) {
       await live.refresh();
       clear();
@@ -113,7 +113,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
     }
     clear();
     if (result.status === 401) {
-      window.location.assign(loginUrlForCurrentPage());
+      backend.onUnauthenticated();
       return null;
     }
     void live.refresh();
@@ -165,16 +165,16 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
   // When voting closes (by deadline or from another tab), the page becomes the reveal.
   const settled = live.view.status === "settled";
   useEffect(() => {
-    if (settled) router.refresh();
-  }, [settled, router]);
+    if (settled) backend.refreshPage();
+  }, [settled, backend]);
 
   async function onEndVoting() {
     if (ending) return;
     setEnding(true);
-    const result = await endVoting(view.slug);
-    if (result.ok || result.error.code === "POLL_SETTLED") return router.refresh();
+    const result = await backend.endVoting(view.slug);
+    if (result.ok || result.error.code === "POLL_SETTLED") return backend.refreshPage();
     setEnding(false);
-    if (result.status === 401) return window.location.assign(loginUrlForCurrentPage());
+    if (result.status === 401) return backend.onUnauthenticated();
     fail(failureCopy(result, "Voting didn\u2019t end"), "results-heading");
   }
 

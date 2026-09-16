@@ -12,11 +12,11 @@ const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)"
  * "pending" until the browser has checked, so the result doesn't flash in its
  * final state and then animate.
  */
-export function useFirstReveal(slug: string, settledAt: string | null): "pending" | "play" | "still" {
+export function useFirstReveal(revealKey: string): "pending" | "play" | "still" {
   const [phase, setPhase] = useState<"pending" | "play" | "still">("pending");
 
   useEffect(() => {
-    const key = `tiebreak:revealed:${slug}:${settledAt ?? "unknown"}`;
+    const key = `tiebreak:revealed:${revealKey}`;
     let seen = false;
     try {
       seen = localStorage.getItem(key) === "1";
@@ -48,7 +48,7 @@ export function useFirstReveal(slug: string, settledAt: string | null): "pending
       clearTimeout(remember);
       document.removeEventListener("visibilitychange", arm);
     };
-  }, [slug, settledAt]);
+  }, [revealKey]);
 
   return phase;
 }

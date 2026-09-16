@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePollBackend } from "@/components/poll/poll-backend";
 import type { CreatorPollView } from "@/domain/views";
-import { fetchCreatorPoll, loginUrlForCurrentPage } from "@/lib/api/client";
 
 /** Polling every few seconds satisfies "Live: updates as votes land" (spec: under 5s). */
 export const POLL_INTERVAL_MS = 4_000;
@@ -16,7 +15,7 @@ export type Connection = "live" | "reconnecting";
  * backs off while the server can't be reached, and stops once voting ends.
  */
 export function useLivePoll(initial: CreatorPollView) {
-  const router = useRouter();
+  const backend = usePollBackend();
   const [view, setView] = useState(initial);
   const [connection, setConnection] = useState<Connection>("live");
   const failures = useRef(0);
@@ -29,7 +28,7 @@ export function useLivePoll(initial: CreatorPollView) {
     inFlight.current = controller;
 
     try {
-      const result = await fetchCreatorPoll(slug, controller.signal);
+      const result = await backend.fetchPoll(slug, controller.signal);
       if (result.ok) {
         failures.current = 0;
         setView(result.data);
@@ -37,12 +36,12 @@ export function useLivePoll(initial: CreatorPollView) {
         return true;
       }
       if (result.status === 401) {
-        window.location.assign(loginUrlForCurrentPage());
+        backend.onUnauthenticated();
         return false;
       }
       if (result.status === 404) {
         // Deleted, or no longer this creator's: let the page render its 404.
-        router.refresh();
+        backend.refreshPage();
         return false;
       }
       failures.current += 1;
@@ -54,7 +53,7 @@ export function useLivePoll(initial: CreatorPollView) {
     } finally {
       if (inFlight.current === controller) inFlight.current = null;
     }
-  }, [router, slug]);
+  }, [backend, slug]);
 
   const settled = view.status === "settled";
 

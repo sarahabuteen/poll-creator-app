@@ -23,6 +23,8 @@ type ResultRevealProps = {
   tieAction?: ReactNode;
   /** Who's looking: the organiser reads "You ended voting", the crew "The organiser ended voting". */
   audience: "creator" | "public";
+  /** What counts as "the same result" for playing the reveal once. Defaults to this poll's settle time. */
+  revealKey?: string;
 };
 
 const FACES = 6;
@@ -74,8 +76,8 @@ function Tally({ votes, total, playing }: { votes: number; total: number; playin
  * every reduced-motion visit) shows the same screen at rest, still built to be
  * understood from a screenshot alone.
  */
-export function ResultReveal({ poll, shareUrl, viewerOptionIds = [], creatorActions, tieAction, audience }: ResultRevealProps) {
-  const phase = useFirstReveal(poll.slug, poll.settledAt);
+export function ResultReveal({ poll, shareUrl, viewerOptionIds = [], creatorActions, tieAction, audience, revealKey }: ResultRevealProps) {
+  const phase = useFirstReveal(revealKey ?? `${poll.slug}:${poll.settledAt ?? "unknown"}`);
   const playing = phase === "play";
   const now = useNow();
   const { state: copyState, copy } = useCopy();

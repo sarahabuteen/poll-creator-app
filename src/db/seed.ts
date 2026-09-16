@@ -7,12 +7,9 @@ import { accounts, ballots, options, polls, users, votes } from "./schema";
 
 const sample = raw as SampleData;
 
-/**
- * The sample timestamps are written as if "now" is this instant (see
- * data/README.md). Seeding shifts every timestamp by `now - SAMPLE_NOW`, so
- * open polls are genuinely open and "closes today" stays true.
- */
-export const SAMPLE_NOW = Date.parse("2026-09-17T15:00:00Z");
+// Seeding shifts every sample timestamp by `now - SAMPLE_NOW` (see data/README.md).
+export { SAMPLE_NOW } from "@/lib/guest/shift";
+import { SAMPLE_NOW } from "@/lib/guest/shift";
 
 /** Owns the sample polls. A real user row, but with no password unless you opt in locally. */
 export const SAMPLE_CREATOR_ID = "sample-morgan";

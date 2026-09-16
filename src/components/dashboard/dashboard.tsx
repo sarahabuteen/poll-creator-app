@@ -14,10 +14,12 @@ type DashboardProps = {
   appUrl: string;
   /** "all" on My polls, "settled" on the Closed tab. */
   show: "all" | "settled";
+  /** Where poll pages live: "/polls" for creators, "/guest/polls" in guest mode. */
+  pollsPath?: string;
 };
 
 const shareUrl = (appUrl: string, slug: string) => `${appUrl}/p/${slug}`;
-const pollHref = (poll: CreatorPollSummary) => `/polls/${poll.slug}`;
+
 
 function WhenLine({ poll }: { poll: CreatorPollSummary }) {
   const now = useNow();
@@ -42,8 +44,9 @@ function WaitingBadge({ count }: { count: number }) {
 }
 
 /** The poll that needs attention first. A zero-vote poll gets a nudge to share instead of an empty race. */
-function FeaturedPoll({ poll, appUrl }: { poll: CreatorPollSummary; appUrl: string }) {
+function FeaturedPoll({ poll, appUrl, pollsPath }: { poll: CreatorPollSummary; appUrl: string; pollsPath: string }) {
   const { state, copy } = useCopy();
+  const pollHref = (item: CreatorPollSummary) => `${pollsPath}/${item.slug}`;
   const noVotes = poll.totalVotes === 0;
 
   return (
@@ -98,8 +101,9 @@ function FeaturedPoll({ poll, appUrl }: { poll: CreatorPollSummary; appUrl: stri
   );
 }
 
-function PollList({ id, title, polls, startDelay }: { id: string; title: string; polls: CreatorPollSummary[]; startDelay: number }) {
+function PollList({ id, title, polls, startDelay, pollsPath }: { id: string; title: string; polls: CreatorPollSummary[]; startDelay: number; pollsPath: string }) {
   if (polls.length === 0) return null;
+  const pollHref = (item: CreatorPollSummary) => `${pollsPath}/${item.slug}`;
   return (
     <section aria-labelledby={id}>
       <h2 id={id} className="font-display text-lg font-extrabold">
@@ -131,14 +135,14 @@ function PollList({ id, title, polls, startDelay }: { id: string; title: string;
 }
 
 /** The creator's polls, answering "what needs my attention?" before "what exists?". */
-export function Dashboard({ polls, appUrl, show }: DashboardProps) {
+export function Dashboard({ polls, appUrl, show, pollsPath = "/polls" }: DashboardProps) {
   const { open, settled } = groupPolls(polls);
   const [featured, ...otherOpen] = open;
   const waiting = open.reduce((sum, poll) => sum + poll.pendingSuggestions, 0);
 
   if (show === "settled") {
     return settled.length > 0 ? (
-      <PollList id="settled-heading" title="Settled" polls={settled} startDelay={0} />
+      <PollList id="settled-heading" title="Settled" polls={settled} startDelay={0} pollsPath={pollsPath} />
     ) : (
       <p className="rounded-lg border-[2.5px] border-dashed border-cocoa-faint p-6 text-cocoa-soft">
         Nothing&rsquo;s settled yet. Polls land here once voting closes.
@@ -154,14 +158,14 @@ export function Dashboard({ polls, appUrl, show }: DashboardProps) {
         </p>
       )}
       {featured ? (
-        <FeaturedPoll poll={featured} appUrl={appUrl} />
+        <FeaturedPoll poll={featured} appUrl={appUrl} pollsPath={pollsPath} />
       ) : (
         <p className="rounded-lg border-[2.5px] border-dashed border-cocoa-faint p-6 text-cocoa-soft">
           No polls open right now. Start one when the group chat needs a decision.
         </p>
       )}
-      <PollList id="open-heading" title="Also open" polls={otherOpen} startDelay={120} />
-      <PollList id="settled-heading" title="Settled" polls={settled} startDelay={200} />
+      <PollList id="open-heading" title="Also open" polls={otherOpen} startDelay={120} pollsPath={pollsPath} />
+      <PollList id="settled-heading" title="Settled" polls={settled} startDelay={200} pollsPath={pollsPath} />
     </div>
   );
 }
