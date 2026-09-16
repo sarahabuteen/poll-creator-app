@@ -23,8 +23,9 @@ export async function serverApi<T>(path: `/api/${string}`, init?: RequestInit): 
     headers: { accept: "application/json", ...(cookie ? { cookie } : {}), ...init?.headers },
   });
 
-  const body = await response.json();
-  return response.ok
-    ? { ok: true, status: response.status, data: body as T }
-    : { ok: false, status: response.status, error: (body as ApiErrorBody).error };
+  // Not every failure has our JSON error body (e.g. a 405 or a platform error page).
+  const body = await response.json().catch(() => null);
+  if (response.ok) return { ok: true, status: response.status, data: body as T };
+  const error = (body as ApiErrorBody | null)?.error ?? { code: "INTERNAL" as const, message: `Request failed (${response.status}).` };
+  return { ok: false, status: response.status, error };
 }

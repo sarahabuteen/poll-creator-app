@@ -62,6 +62,19 @@ export function suggestOption(slug: string, body: { label: string; suggestedBy: 
   });
 }
 
+export type CreatePollBody = {
+  title: string;
+  options: string[];
+  closesAt: string;
+  voteType: "single" | "multi";
+  maxChoices: number;
+  suggestionsEnabled: boolean;
+};
+
+export function createPoll(body: CreatePollBody) {
+  return request<{ slug: string }>("/api/creator/polls", { method: "POST", body: JSON.stringify(body) });
+}
+
 /** Where to send a creator whose session has expired, so they come back here after logging in. */
 export function loginUrlForCurrentPage(): string {
   return `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;

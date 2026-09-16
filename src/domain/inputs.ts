@@ -3,15 +3,9 @@ import { PollRuleError } from "./errors";
 
 export const AVATAR_TINTS = ["f8c9b9", "cbe2d8", "f6e0a4", "e3d2f2"] as const;
 
-export const LIMITS = {
-  titleLength: 120,
-  optionLength: 80,
-  nameLength: 40,
-  minOptions: 2,
-  maxOptions: 10,
-  /** Creator options plus approved and pending suggestions. */
-  maxBallotOptions: 20,
-} as const;
+import { LIMITS } from "./limits";
+
+export { LIMITS };
 
 const trimmed = (max: number) => z.string().trim().min(1).max(max);
 

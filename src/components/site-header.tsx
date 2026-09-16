@@ -5,7 +5,9 @@ import type { Person } from "@/domain/views";
 
 type SiteHeaderProps = {
   account: Person;
-  current: "my-polls" | "closed";
+  current: "my-polls" | "closed" | null;
+  /** Hidden on the empty dashboard, where the page's own tangerine button is the one way in. */
+  showNewPoll?: boolean;
 };
 
 const navItems = [
@@ -13,7 +15,7 @@ const navItems = [
   { key: "closed", label: "Closed", href: "/closed" },
 ] as const;
 
-export function SiteHeader({ account, current }: SiteHeaderProps) {
+export function SiteHeader({ account, current, showNewPoll = true }: SiteHeaderProps) {
   return (
     <header className="mx-auto w-full max-w-page px-4 sm:px-6">
       {/*
@@ -49,20 +51,24 @@ export function SiteHeader({ account, current }: SiteHeaderProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-4 justify-self-end">
-          <Link
-            href="/polls/new"
-            className="press hidden min-h-11 items-center gap-2 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold text-cocoa hover:bg-cream-deep sm:inline-flex"
-          >
-            <PlusIcon />
-            New poll
-          </Link>
-          <Link
-            href="/polls/new"
-            aria-label="New poll"
-            className="press inline-flex size-11 items-center justify-center rounded-full border-2 border-cocoa bg-tangerine text-cream-bright shadow-press-tangerine sm:hidden"
-          >
-            <PlusIcon size={20} />
-          </Link>
+          {showNewPoll && (
+            <>
+              <Link
+                href="/polls/new"
+                className="press hidden min-h-11 items-center gap-2 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold text-cocoa hover:bg-cream-deep sm:inline-flex"
+              >
+                <PlusIcon />
+                New poll
+              </Link>
+              <Link
+                href="/polls/new"
+                aria-label="New poll"
+                className="press inline-flex size-11 items-center justify-center rounded-full border-2 border-cocoa bg-tangerine text-cream-bright shadow-press-tangerine sm:hidden"
+              >
+                <PlusIcon size={20} />
+              </Link>
+            </>
+          )}
           <AccountMenu account={account} />
         </div>
       </div>

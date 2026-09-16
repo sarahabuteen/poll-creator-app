@@ -69,3 +69,25 @@ export type CreatorPollView = PollView & {
   pendingSuggestions: SuggestionView[];
   undoableDecisions: UndoableDecisionView[];
 };
+
+/** One poll on the creator's dashboard: enough to answer "what needs my attention?". */
+export type CreatorPollSummary = {
+  slug: string;
+  title: string;
+  status: "open" | "settled";
+  closesAt: string;
+  settledAt: string | null;
+  endedEarly: boolean;
+  createdAt: string;
+  totalVotes: number;
+  voterCount: number;
+  /** Suggestions waiting for a decision. */
+  pendingSuggestions: number;
+  /** The option(s) with the most votes: more than one is a tie, none means no votes yet. */
+  leaders: Array<{ label: string; votes: number }>;
+};
+
+/** GET /api/creator/polls */
+export type CreatorDashboardView = {
+  polls: CreatorPollSummary[];
+};

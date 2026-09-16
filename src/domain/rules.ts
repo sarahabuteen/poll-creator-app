@@ -1,5 +1,7 @@
 import { PollRuleError } from "./errors";
-import { LIMITS } from "./inputs";
+import { LIMITS, MAX_VOTING_WINDOW_MS, MIN_VOTING_WINDOW_MS } from "./limits";
+
+export { MAX_VOTING_WINDOW_MS, MIN_VOTING_WINDOW_MS };
 
 /**
  * The poll state machine, as pure functions over plain data. The database
@@ -12,10 +14,6 @@ import { LIMITS } from "./inputs";
  *   Ballot:      final. There is no change-vote or un-vote.
  */
 
-/** Closing times must leave the crew a real chance to vote. */
-export const MIN_VOTING_WINDOW_MS = 5 * 60_000;
-/** Polls are short-lived group decisions, and settled polls retire after 30 days. */
-export const MAX_VOTING_WINDOW_MS = 30 * 24 * 60 * 60_000;
 /** Pending suggestions one browser can have waiting on a poll at once. */
 export const MAX_PENDING_PER_VOTER = 3;
 /** Pending suggestions a poll can hold, so the organiser's queue can't be buried. */

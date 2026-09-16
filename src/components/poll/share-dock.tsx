@@ -1,27 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { CheckIcon, CopyIcon } from "@/components/icons";
-
-type CopyState = "idle" | "copied" | "failed";
+import { useCopy } from "@/components/use-copy";
 
 export function ShareDock({ shareUrl }: { shareUrl: string }) {
-  const [copyState, setCopyState] = useState<CopyState>("idle");
-
-  useEffect(() => {
-    if (copyState === "idle") return;
-    const timer = setTimeout(() => setCopyState("idle"), 4000);
-    return () => clearTimeout(timer);
-  }, [copyState]);
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopyState("copied");
-    } catch {
-      setCopyState("failed");
-    }
-  }
+  const { state: copyState, copy } = useCopy();
+  const copyLink = () => copy(shareUrl);
 
   return (
     <div>
