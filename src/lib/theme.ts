@@ -1,33 +1,31 @@
 export type ThemePreference = "system" | "light" | "dark";
 
-export const THEME_STORAGE_KEY = "tiebreak:theme";
-
 /**
- * Runs before first paint (inlined in <head>), so a dark-mode visitor never
- * sees a flash of the light theme. Only an explicit choice sets data-theme;
- * "system" leaves it off and the CSS follows prefers-color-scheme.
+ * An explicit theme choice lives in a cookie, so the server renders
+ * data-theme straight into the HTML: no flash of the wrong theme and no inline
+ * script. "System" is the absence of the cookie; CSS follows
+ * prefers-color-scheme on its own.
  */
-export const THEME_BOOT_SCRIPT = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}})();`;
+export const THEME_COOKIE = "tiebreak-theme";
+
+export function parseThemeCookie(value: string | undefined): "light" | "dark" | undefined {
+  return value === "light" || value === "dark" ? value : undefined;
+}
 
 export function applyTheme(preference: ThemePreference) {
   const root = document.documentElement;
-  if (preference === "system") delete root.dataset.theme;
-  else root.dataset.theme = preference;
-  try {
-    if (preference === "system") localStorage.removeItem(THEME_STORAGE_KEY);
-    else localStorage.setItem(THEME_STORAGE_KEY, preference);
-  } catch {
-    // Storage blocked: the choice lasts for this page only.
+  if (preference === "system") {
+    delete root.dataset.theme;
+    document.cookie = `${THEME_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  } else {
+    root.dataset.theme = preference;
+    document.cookie = `${THEME_COOKIE}=${preference}; path=/; max-age=31536000; samesite=lax`;
   }
 }
 
 export function readThemePreference(): ThemePreference {
-  try {
-    const value = localStorage.getItem(THEME_STORAGE_KEY);
-    return value === "light" || value === "dark" ? value : "system";
-  } catch {
-    return "system";
-  }
+  const match = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=([^;]*)`));
+  return parseThemeCookie(match?.[1]) ?? "system";
 }
 
 export const NEXT_THEME: Record<ThemePreference, ThemePreference> = { system: "light", light: "dark", dark: "system" };

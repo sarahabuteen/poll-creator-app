@@ -53,6 +53,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
   // handler that sets it also updates state, so the effect below always runs.
   const focusTarget = useRef<string | null>(null);
   const undoRef = useRef<HTMLButtonElement>(null);
+  const inFlight = useRef(new Map<string, Promise<void>>());
 
   const view = useMemo(() => applyOverlays(live.view, overlays), [live.view, overlays]);
   const results = useMemo(() => deriveResults(view.options), [view.options]);
@@ -102,10 +103,20 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
    * mid-request can't flash the old state. Returns a failure message, if any.
    */
   async function send(suggestion: SuggestionView, action: ModerationAction, to: ModerationOverlay["to"]) {
-    const clear = () => setOverlays((current) => current.filter((item) => item.suggestion.id !== suggestion.id));
-    setOverlays((current) => [...current.filter((item) => item.suggestion.id !== suggestion.id), { suggestion, to }]);
+    const overlay: ModerationOverlay = { suggestion, to };
+    // Only remove this request's own overlay: a newer decision (a quick Undo) may have replaced it.
+    const clear = () => setOverlays((current) => current.filter((item) => item !== overlay));
+    setOverlays((current) => [...current.filter((item) => item.suggestion.id !== suggestion.id), overlay]);
 
-    const result = await backend.moderate(view.slug, suggestion.id, action);
+    // Requests about the same suggestion go to the server in order, so an Undo
+    // pressed while "Add it" is still in flight can't arrive first.
+    const previous = inFlight.current.get(suggestion.id) ?? Promise.resolve();
+    const request = previous.then(() => backend.moderate(view.slug, suggestion.id, action));
+    const settled = request.then(() => undefined, () => undefined);
+    inFlight.current.set(suggestion.id, settled);
+    const result = await request;
+    if (inFlight.current.get(suggestion.id) === settled) inFlight.current.delete(suggestion.id);
+
     if (result.ok) {
       await live.refresh();
       clear();
@@ -223,7 +234,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
         <LiveStatus status={view.status} connection={live.connection} />
       </div>
 
-      {open && view.suggestionsEnabled && (view.pendingSuggestions.length > 0 || toast) && (
+      {open && (
         <section aria-labelledby="pending-heading" className="mt-8 flex flex-col gap-6">
           <h2 id="pending-heading" tabIndex={-1} className="sr-only">
             Suggestions waiting on you
@@ -236,6 +247,14 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
               onDecline={() => decline(suggestion)}
             />
           ))}
+          {/* Empty states say what would appear here, so an empty space never looks broken. */}
+          {view.pendingSuggestions.length === 0 && (
+            <p className="rounded-lg border-2 border-dashed border-cocoa-faint px-5 py-4 text-sm text-cocoa-soft">
+              {view.suggestionsEnabled
+                ? "No suggestions waiting. When someone in your crew suggests an option, it shows up here for you to add or pass on."
+                : "Suggestions are off for this poll, so the ballot stays as you set it."}
+            </p>
+          )}
         </section>
       )}
 

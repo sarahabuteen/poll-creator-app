@@ -10,7 +10,7 @@ test.describe("reflow", () => {
     test(`public pages fit 320px with text at ${textScale * 100}%`, async ({ page }) => {
       for (const path of PUBLIC_PAGES) {
         await page.goto(path);
-        await expect(page.locator("h1").first()).toBeVisible();
+        await expect(page.locator("main:not([aria-busy]) h1").first()).toBeVisible();
         await page.evaluate((scale) => (document.documentElement.style.fontSize = `${scale * 100}%`), textScale);
         expect(await overflowsHorizontally(page), `${path} scrolls sideways`).toBe(false);
       }
@@ -20,7 +20,7 @@ test.describe("reflow", () => {
       await logInAsSampleCreator(page);
       for (const path of ["/", "/polls/new", "/polls/friday-film-club", "/polls/friday-film-club/share", "/polls/lake-weekend"]) {
         await page.goto(path);
-        await expect(page.locator("h1").first()).toBeVisible();
+        await expect(page.locator("main:not([aria-busy]) h1").first()).toBeVisible();
         await page.evaluate((scale) => (document.documentElement.style.fontSize = `${scale * 100}%`), textScale);
         expect(await overflowsHorizontally(page), `${path} scrolls sideways`).toBe(false);
       }

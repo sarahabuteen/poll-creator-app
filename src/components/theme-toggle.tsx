@@ -8,11 +8,10 @@ function subscribe(listener: () => void) {
   listeners.add(listener);
   const media = window.matchMedia("(prefers-color-scheme: dark)");
   media.addEventListener("change", listener);
-  window.addEventListener("storage", listener);
+
   return () => {
     listeners.delete(listener);
     media.removeEventListener("change", listener);
-    window.removeEventListener("storage", listener);
   };
 }
 
@@ -43,7 +42,7 @@ function Icon({ preference }: { preference: ThemePreference }) {
   );
 }
 
-/** Cycles System → Light → Dark. Remembered in this browser. */
+/** Cycles System → Light → Dark. Remembered in a cookie, so the server renders the right theme. */
 export function ThemeToggle() {
   // null during server render: the choice lives in the browser.
   const preference = useSyncExternalStore<ThemePreference | null>(subscribe, readThemePreference, () => null);

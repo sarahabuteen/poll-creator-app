@@ -8,7 +8,7 @@ test.describe("public pages", () => {
   for (const path of ["/login", "/signup", "/guest", "/guest/closed", "/guest/polls/pizza-night", "/guest/polls/meal-out", "/p/meal-out"]) {
     test(`${path} has no axe violations`, async ({ page }) => {
       await page.goto(path);
-      await expect(page.locator("main")).toBeVisible();
+      await expect(page.locator("main:not([aria-busy])")).toBeVisible();
       await expect(page.locator("h1").first()).toBeVisible();
       await expectAccessible(page, path);
     });
@@ -16,6 +16,8 @@ test.describe("public pages", () => {
 
   test("the ballot, its errors and both dialogs have no axe violations", async ({ page }) => {
     await page.goto("/p/birthday-brunch");
+    // Past the loading skeleton, onto the real ballot.
+    await expect(page.getByRole("heading", { name: "Who’s voting?" })).toBeVisible();
     await expectAccessible(page, "ballot");
 
     // aria-disabled (not disabled): announced as unavailable, but still focusable and

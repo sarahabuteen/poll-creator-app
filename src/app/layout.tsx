@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Gabarito, Karla } from "next/font/google";
-import { THEME_BOOT_SCRIPT } from "@/lib/theme";
+import { cookies } from "next/headers";
+import { parseThemeCookie, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
 const gabarito = Gabarito({
@@ -29,17 +30,17 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const theme = parseThemeCookie((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <html
       lang="en"
       className={`${gabarito.variable} ${karla.variable} h-full antialiased`}
-      // The boot script may set data-theme before React hydrates.
+      // An explicit theme choice is rendered by the server, so the first paint is already right.
+      data-theme={theme}
+      // The theme toggle changes data-theme after hydration.
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-      </head>
       <body className="min-h-full flex flex-col">
         <a
           href="#main"

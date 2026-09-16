@@ -28,9 +28,9 @@ test("follows the system theme until the viewer picks one", async ({ page }, tes
 test("a saved dark theme applies before the first paint, with no light flash", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop-dark", "One run is enough");
   await page.emulateMedia({ colorScheme: "light" });
-  await page.addInitScript(() => localStorage.setItem("tiebreak:theme", "dark"));
+  await page.context().addCookies([{ name: "tiebreak-theme", value: "dark", url: "http://localhost:3100" }]);
 
-  // Captured as soon as the document exists, before React or any stylesheet-driven paint.
+  // Captured as soon as the document exists: the server already rendered the choice.
   await page.addInitScript(() => {
     document.addEventListener("DOMContentLoaded", () => {
       (window as unknown as { __themeAtLoad: string | undefined }).__themeAtLoad = document.documentElement.dataset.theme;
