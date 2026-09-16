@@ -1,5 +1,5 @@
 import type { ApiErrorBody } from "@/domain/errors";
-import type { CreatorPollView } from "@/domain/views";
+import type { CreatorPollView, Person, PublicPollView } from "@/domain/views";
 import type { ApiResult } from "./types";
 
 /** Calls the app's API from the browser. Never throws: failures come back as results. */
@@ -38,6 +38,28 @@ export function moderateSuggestion(slug: string, optionId: string, action: Moder
     `/api/creator/polls/${encodeURIComponent(slug)}/suggestions/${encodeURIComponent(optionId)}/${action}`,
     { method: "POST", body: "{}" },
   );
+}
+
+/** The public poll for voters. Revalidates with the ETag like the creator view. */
+export function fetchPublicPoll(slug: string, signal?: AbortSignal) {
+  return request<PublicPollView>(`/api/polls/${encodeURIComponent(slug)}`, { signal, cache: "no-cache" });
+}
+
+export type CastBallotBody = { ballotId: string; voter: Person; optionIds: string[] };
+
+/** Casting is idempotent per ballotId, so retrying the same ballot never counts twice. */
+export function castBallot(slug: string, body: CastBallotBody) {
+  return request<{ ballotId: string; optionIds: string[]; castAt: string }>(
+    `/api/polls/${encodeURIComponent(slug)}/ballots`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export function suggestOption(slug: string, body: { label: string; suggestedBy: Person }) {
+  return request<{ id: string; status: "pending" }>(`/api/polls/${encodeURIComponent(slug)}/suggestions`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 /** Where to send a creator whose session has expired, so they come back here after logging in. */

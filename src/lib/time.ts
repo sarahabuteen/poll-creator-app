@@ -61,3 +61,13 @@ export function timeAgo(then: number, now: number): string {
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "day" : "days"} ago`;
 }
+
+/** A past moment in words: "today at 7:02 PM", "yesterday at 9:15 AM", "on Tuesday", "on 3 September". */
+export function formatSettled(settledAt: number, now: number): string {
+  const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(settledAt);
+  const days = Math.round((startOfDay(now) - startOfDay(settledAt)) / 86_400_000);
+  if (days <= 0) return `today at ${time}`;
+  if (days === 1) return `yesterday at ${time}`;
+  if (days < 7) return `on ${new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(settledAt)}`;
+  return `on ${new Intl.DateTimeFormat(undefined, { day: "numeric", month: "long" }).format(settledAt)}`;
+}

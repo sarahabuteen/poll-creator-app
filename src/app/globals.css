@@ -139,3 +139,89 @@
     }
   }
 }
+
+/*
+ * Vote page motion. Every use is behind `motion-safe:`, so reduced-motion
+ * viewers get the same screens, fully rendered, with nothing moving.
+ */
+@theme {
+  --animate-pop: pop 460ms cubic-bezier(0.2, 0.9, 0.3, 1.35) both;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-grow-x: grow-x 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade: fade 200ms ease-out both;
+  --animate-check: check 380ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  --animate-wiggle: wiggle 420ms ease-in-out;
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes rise {
+    from {
+      transform: translateY(0.75rem);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @keyframes grow-x {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes check {
+    0% {
+      transform: scale(0) rotate(-25deg);
+    }
+    100% {
+      transform: scale(1) rotate(0);
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
+}
+
+/* Native <dialog> backdrop, in cocoa ink rather than flat black. */
+dialog.sheet::backdrop {
+  background: rgb(56 38 26 / 0.45);
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet[open] {
+    animation: rise 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  dialog.sheet[open]::backdrop {
+    animation: fade 200ms ease-out both;
+  }
+}
