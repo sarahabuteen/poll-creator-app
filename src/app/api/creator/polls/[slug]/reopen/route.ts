@@ -10,7 +10,7 @@ const body = z.object({ closesAt: z.coerce.date() });
 export type ReopenVotingRequest = z.input<typeof body>;
 
 export const POST = handle(async (request: NextRequest, ctx: RouteContext<"/api/creator/polls/[slug]/reopen">) => {
-  const creatorId = requireCreatorId();
+  const creatorId = await requireCreatorId(request);
   const { slug } = await ctx.params;
   const { closesAt } = parseBody(body, await readJson(request));
   const next = await reopenVoting(getDb(), { slug, creatorId, closesAt });

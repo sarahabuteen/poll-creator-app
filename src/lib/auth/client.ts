@@ -1,32 +1,48 @@
+import { createAuthClient } from "better-auth/client";
 import type { LogInValues, SignUpValues } from "./validation";
 
 /**
- * The auth calls the UI makes. These are placeholders until the Better Auth
- * backend lands (scope 2, backend): they resolve with an honest "not
- * available" result so every form state can be built and tested now, and the
- * components won't change when the real client replaces them.
+ * The auth calls the UI makes, over Better Auth's HTTP API (/api/auth/*).
+ * Results are reduced to a few codes the forms have copy for, so components
+ * don't depend on the auth library's error format.
  */
 
-export type AuthErrorCode = "INVALID_CREDENTIALS" | "EMAIL_TAKEN" | "NETWORK" | "UNAVAILABLE";
+export type AuthErrorCode = "INVALID_CREDENTIALS" | "EMAIL_TAKEN" | "RATE_LIMITED" | "NETWORK" | "UNKNOWN";
 
 export type AuthResult = { ok: true } | { ok: false; code: AuthErrorCode };
 
-const notConnected = async (): Promise<AuthResult> => {
-  // A short pause so the pending state is visible, as it will be with a real request.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return { ok: false, code: "UNAVAILABLE" };
-};
+// Same origin: the browser's own URL is the base, so preview deployments work unchanged.
+const client = createAuthClient();
 
-export function logIn(values: LogInValues): Promise<AuthResult> {
-  void values;
-  return notConnected();
+type ClientError = { status?: number; code?: string } | null;
+
+export function toAuthErrorCode(error: ClientError): AuthErrorCode {
+  if (!error) return "UNKNOWN";
+  if (error.status === 429) return "RATE_LIMITED";
+  if (error.code === "INVALID_EMAIL_OR_PASSWORD") return "INVALID_CREDENTIALS";
+  if (error.code?.startsWith("USER_ALREADY_EXISTS")) return "EMAIL_TAKEN";
+  // Better Auth reports a failed fetch with status 0.
+  if (!error.status) return "NETWORK";
+  return "UNKNOWN";
 }
 
-export function signUp(values: SignUpValues): Promise<AuthResult> {
-  void values;
-  return notConnected();
+async function run(request: () => Promise<{ error: ClientError }>): Promise<AuthResult> {
+  try {
+    const { error } = await request();
+    return error ? { ok: false, code: toAuthErrorCode(error) } : { ok: true };
+  } catch {
+    return { ok: false, code: "NETWORK" };
+  }
+}
+
+export function logIn({ email, password }: LogInValues): Promise<AuthResult> {
+  return run(() => client.signIn.email({ email: email.trim(), password }));
+}
+
+export function signUp({ name, email, password }: SignUpValues): Promise<AuthResult> {
+  return run(() => client.signUp.email({ name: name.trim(), email: email.trim(), password }));
 }
 
 export function logOut(): Promise<AuthResult> {
-  return notConnected();
+  return run(() => client.signOut());
 }

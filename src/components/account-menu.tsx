@@ -47,11 +47,7 @@ export function AccountMenu({ account }: { account: Person }) {
         router.refresh();
         return;
       }
-      setMessage(
-        result.code === "UNAVAILABLE"
-          ? "Accounts aren’t switched on yet, so there’s nothing to log out of."
-          : "That didn’t go through. Try again.",
-      );
+      setMessage("That didn’t go through. Try again.");
     } finally {
       setPending(false);
     }

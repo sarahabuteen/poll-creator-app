@@ -55,8 +55,8 @@ describe("createPoll", () => {
   };
 
   it("creates an open poll with its options in order and an unguessable slug", async () => {
-    const { slug } = await createPoll(db(), "creator-1", valid, NOW);
-    const view = await getCreatorPollView(db(), slug, { creatorId: "creator-1", now: NOW });
+    const { slug } = await createPoll(db(), SAMPLE_CREATOR_ID, valid, NOW);
+    const view = await getCreatorPollView(db(), slug, { creatorId: SAMPLE_CREATOR_ID, now: NOW });
 
     expect(slug).toMatch(/^[A-Za-z0-9_-]{14}$/);
     expect(view).toMatchObject({ title: "Friday takeaway", status: "open", maxChoices: 1, totalVotes: 0 });

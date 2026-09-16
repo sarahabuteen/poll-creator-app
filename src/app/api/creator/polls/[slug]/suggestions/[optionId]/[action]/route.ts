@@ -10,8 +10,8 @@ const actions = { approve: approveSuggestion, decline: declineSuggestion, undo: 
 
 /** POST …/approve ("Add it"), …/decline ("Not this time") or …/undo (the undo toast). */
 export const POST = handle(
-  async (_request: NextRequest, ctx: RouteContext<"/api/creator/polls/[slug]/suggestions/[optionId]/[action]">) => {
-    const creatorId = requireCreatorId();
+  async (request: NextRequest, ctx: RouteContext<"/api/creator/polls/[slug]/suggestions/[optionId]/[action]">) => {
+    const creatorId = await requireCreatorId(request);
     const { slug, optionId, action } = await ctx.params;
     if (!Object.hasOwn(actions, action) || !z.uuid().safeParse(optionId).success) {
       throw new PollRuleError("SUGGESTION_NOT_FOUND", "Suggestion not found.");

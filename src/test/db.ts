@@ -16,7 +16,7 @@ export async function createTestDb(): Promise<Connection> {
 }
 
 export async function reseed(connection: Connection) {
-  await seedSampleData(connection.db, NOW.getTime());
+  await seedSampleData(connection.db, { now: NOW.getTime() });
 }
 
 /** Option ids by label for a seeded poll. */

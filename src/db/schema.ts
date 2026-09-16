@@ -12,6 +12,9 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth-schema";
+
+export * from "./auth-schema";
 
 export const voteType = pgEnum("vote_type", ["single", "multi"]);
 export const pollStatus = pgEnum("poll_status", ["open", "settled"]);
@@ -28,8 +31,9 @@ export const polls = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     /** Unguessable in real polls: the link is the access control for voting. */
     slug: text("slug").notNull().unique(),
-    // Becomes a foreign key to the auth user table once creator accounts land (scope 2).
-    creatorId: text("creator_id").notNull(),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     voteType: voteType("vote_type").notNull().default("single"),
     maxChoices: integer("max_choices").notNull().default(1),

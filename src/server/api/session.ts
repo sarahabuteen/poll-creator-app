@@ -1,5 +1,5 @@
 import type { NextRequest, NextResponse } from "next/server";
-import { SAMPLE_CREATOR_ID } from "@/db/seed";
+import { getCreator } from "@/server/auth/session";
 import { ApiError } from "./http";
 
 /**
@@ -30,14 +30,9 @@ export function setVoterCookie(response: NextResponse, token: string) {
   });
 }
 
-/**
- * TODO(scope 2): resolve the signed-in creator from the auth session.
- * Until then creator endpoints act as the sample creator in development, and
- * are closed in production so nobody can moderate or end the demo polls.
- */
-export function requireCreatorId(): string {
-  if (process.env.NODE_ENV === "production") {
-    throw new ApiError(401, "UNAUTHENTICATED", "Sign in to manage polls.");
-  }
-  return SAMPLE_CREATOR_ID;
+/** The signed-in creator's id, or a 401 for anyone else. */
+export async function requireCreatorId(request: NextRequest): Promise<string> {
+  const creator = await getCreator(request.headers);
+  if (!creator) throw new ApiError(401, "UNAUTHENTICATED", "Log in to manage polls.");
+  return creator.id;
 }

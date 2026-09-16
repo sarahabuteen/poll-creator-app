@@ -18,7 +18,9 @@ export function AuthFailure({ code, logInHref }: { code: AuthErrorCode; logInHre
       );
     case "NETWORK":
       return <>That didn&rsquo;t send. Check your connection and try again.</>;
-    case "UNAVAILABLE":
-      return <>Accounts aren&rsquo;t switched on yet, so this can&rsquo;t sign you in. Try again soon.</>;
+    case "RATE_LIMITED":
+      return <>That&rsquo;s a lot of tries in a row. Wait a minute, then try again.</>;
+    case "UNKNOWN":
+      return <>Something went wrong on our side. Try again in a moment.</>;
   }
 }

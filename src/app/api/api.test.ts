@@ -2,10 +2,11 @@ import { NextRequest } from "next/server";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Connection } from "@/db/connect";
 import type { ApiErrorBody } from "@/domain/errors";
-import type { CreatorPollView, PublicPollView } from "@/domain/views";
+import type { PublicPollView } from "@/domain/views";
 import { seedSampleData } from "@/db/seed";
 import { createTestDb, optionIds } from "@/test/db";
 
+// Public voter endpoints. Creator endpoints and auth are covered in creator.test.ts.
 // Route handlers call getDb(); point it at an in-memory test database.
 const holder = vi.hoisted(() => ({ connection: undefined as Connection | undefined }));
 vi.mock("@/db/client", () => ({ getDb: () => holder.connection!.db }));
@@ -13,9 +14,6 @@ vi.mock("@/db/client", () => ({ getDb: () => holder.connection!.db }));
 const { GET: getPoll } = await import("./polls/[slug]/route");
 const { POST: castBallot } = await import("./polls/[slug]/ballots/route");
 const { POST: suggest } = await import("./polls/[slug]/suggestions/route");
-const { GET: getCreatorPoll } = await import("./creator/polls/[slug]/route");
-const { POST: moderate } = await import("./creator/polls/[slug]/suggestions/[optionId]/[action]/route");
-const { POST: endVoting } = await import("./creator/polls/[slug]/end/route");
 
 const ctx = <P extends Record<string, string>>(params: P) => ({ params: Promise.resolve(params) });
 
@@ -114,45 +112,15 @@ describe("POST /api/polls/:slug/ballots", () => {
   });
 });
 
-describe("suggestions and moderation", () => {
-  it("creates a pending suggestion that only the creator view shows", async () => {
+describe("POST /api/polls/:slug/suggestions", () => {
+  it("creates a pending suggestion that stays off the public ballot", async () => {
     const created = await suggest(
       request("/api/polls/pizza-night/suggestions", { body: { label: "Calzones", suggestedBy: rosa } }),
       ctx({ slug: "pizza-night" }),
     );
     expect(created.status).toBe(201);
-    const { id } = (await created.json()) as { id: string };
 
-    const creatorView = (await (await getCreatorPoll(request("/api/creator/polls/pizza-night"), ctx({ slug: "pizza-night" }))).json()) as CreatorPollView;
     const publicView = (await (await getPoll(request("/api/polls/pizza-night"), ctx({ slug: "pizza-night" }))).json()) as PublicPollView;
-
-    expect(creatorView.pendingSuggestions.map((s) => s.id)).toContain(id);
     expect(JSON.stringify(publicView)).not.toContain("Calzones");
-  });
-
-  it("approves via the action route, and refuses unknown actions or ids as 404", async () => {
-    const ids = await optionIds(holder.connection!, "pizza-night");
-    const optionId = ids["Just order salads"];
-
-    const approved = await moderate(request(`/api/creator/polls/pizza-night/suggestions/${optionId}/approve`, { body: {} }), ctx({ slug: "pizza-night", optionId, action: "approve" }));
-    expect(approved.status).toBe(200);
-    expect(await approved.json()).toEqual({ optionId, status: "approved" });
-
-    const twice = await moderate(request("/x", { body: {} }), ctx({ slug: "pizza-night", optionId, action: "decline" }));
-    expect(twice.status).toBe(409);
-
-    const unknown = await moderate(request("/x", { body: {} }), ctx({ slug: "pizza-night", optionId, action: "delete" }));
-    const badId = await moderate(request("/x", { body: {} }), ctx({ slug: "pizza-night", optionId: "not-a-uuid", action: "approve" }));
-    expect([unknown.status, badId.status]).toEqual([404, 404]);
-  });
-
-  it("closes creator endpoints in production until auth exists", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    try {
-      const response = await endVoting(request("/api/creator/polls/pizza-night/end", { body: {} }), ctx({ slug: "pizza-night" }));
-      expect(response.status).toBe(401);
-    } finally {
-      vi.unstubAllEnvs();
-    }
   });
 });

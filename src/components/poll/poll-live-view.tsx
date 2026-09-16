@@ -6,17 +6,16 @@ import { packRowId, PackList } from "@/components/poll/pack-list";
 import { ClosesChip, CrewLine, StatusPill } from "@/components/poll/poll-meta";
 import { ShareDock } from "@/components/poll/share-dock";
 import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-card";
-import type { BallotOptionView, CreatorPollView, PublicPollView, SuggestionView } from "@/domain/views";
+import type { BallotOptionView, CreatorPollView, SuggestionView } from "@/domain/views";
 import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
 
 /** A declined suggestion and where it sat in the pending list, so undo can put it back. */
 type Declined = { suggestion: SuggestionView; index: number };
 
 // Moderation here only updates local state; scope 3 wires it to the server commands.
-// A public view (no creator access) renders the same results without moderation.
-export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView | PublicPollView; shareUrl: string }) {
+export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
   const [ballot, setBallot] = useState<BallotOptionView[]>(poll.options);
-  const [pending, setPending] = useState<SuggestionView[]>(poll.audience === "creator" ? poll.pendingSuggestions : []);
+  const [pending, setPending] = useState<SuggestionView[]>(poll.pendingSuggestions);
   const [justAdded, setJustAdded] = useState<ReadonlySet<string>>(new Set());
   const [declined, setDeclined] = useState<Declined | null>(null);
   const [announcement, setAnnouncement] = useState("");

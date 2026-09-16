@@ -1,8 +1,9 @@
-import { inArray } from "drizzle-orm";
+import { hashPassword } from "better-auth/crypto";
+import { and, eq, inArray } from "drizzle-orm";
 import raw from "../../data/sample-polls.json";
 import type { SampleData } from "./sample-types";
 import type { Db } from "./connect";
-import { ballots, options, polls, votes } from "./schema";
+import { accounts, ballots, options, polls, users, votes } from "./schema";
 
 const sample = raw as SampleData;
 
@@ -13,14 +14,41 @@ const sample = raw as SampleData;
  */
 export const SAMPLE_NOW = Date.parse("2026-09-17T15:00:00Z");
 
-/** The sample creator, until creator accounts exist (scope 2). */
+/** Owns the sample polls. A real user row, but with no password unless you opt in locally. */
 export const SAMPLE_CREATOR_ID = "sample-morgan";
+export const SAMPLE_CREATOR_EMAIL = "morgan@tiebreak.test";
+
+type SeedOptions = {
+  now?: number;
+  /** Local testing only: lets you log in as the sample creator with this password. */
+  samplePassword?: string;
+};
 
 /** Replaces the sample polls (matched by slug) with a fresh, time-shifted copy. */
-export async function seedSampleData(db: Db, now = Date.now()) {
+export async function seedSampleData(db: Db, { now = Date.now(), samplePassword }: SeedOptions = {}) {
   const shift = (iso: string) => new Date(Date.parse(iso) + (now - SAMPLE_NOW));
+  // Hashing is slow on purpose; do it before opening the transaction.
+  const passwordHash = samplePassword ? await hashPassword(samplePassword) : null;
 
   await db.transaction(async (tx) => {
+    await tx
+      .insert(users)
+      .values({ id: SAMPLE_CREATOR_ID, name: sample.creator.name, email: SAMPLE_CREATOR_EMAIL })
+      .onConflictDoNothing({ target: users.id });
+
+    if (passwordHash) {
+      await tx
+        .delete(accounts)
+        .where(and(eq(accounts.userId, SAMPLE_CREATOR_ID), eq(accounts.providerId, "credential")));
+      await tx.insert(accounts).values({
+        id: crypto.randomUUID(),
+        accountId: SAMPLE_CREATOR_ID,
+        providerId: "credential",
+        userId: SAMPLE_CREATOR_ID,
+        password: passwordHash,
+      });
+    }
+
     // Cascades to options, ballots and votes.
     await tx.delete(polls).where(
       inArray(

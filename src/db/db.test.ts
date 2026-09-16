@@ -12,7 +12,7 @@ beforeAll(async () => {
   // Empty data dir = in-memory PGlite, fresh for this file.
   connection = connect({ DATABASE_URL: undefined, PGLITE_DATA_DIR: "" });
   await runMigrations(connection);
-  await seedSampleData(connection.db, NOW);
+  await seedSampleData(connection.db, { now: NOW });
 });
 
 afterAll(() => connection.close());
@@ -32,7 +32,7 @@ describe("seeded sample data", () => {
   });
 
   it("can be re-seeded without duplicating polls", async () => {
-    await seedSampleData(connection.db, NOW);
+    await seedSampleData(connection.db, { now: NOW });
     const [{ value }] = await connection.db.select({ value: count() }).from(polls);
     expect(value).toBe(5);
   });

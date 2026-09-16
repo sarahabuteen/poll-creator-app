@@ -50,3 +50,14 @@ describe("safeNextPath", () => {
     expect(safeNextPath(["/a", "/b"])).toBe("/a");
   });
 });
+
+describe("toAuthErrorCode", () => {
+  it("maps Better Auth errors to the codes the forms have copy for", async () => {
+    const { toAuthErrorCode } = await import("./client");
+    expect(toAuthErrorCode({ status: 401, code: "INVALID_EMAIL_OR_PASSWORD" })).toBe("INVALID_CREDENTIALS");
+    expect(toAuthErrorCode({ status: 422, code: "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL" })).toBe("EMAIL_TAKEN");
+    expect(toAuthErrorCode({ status: 429 })).toBe("RATE_LIMITED");
+    expect(toAuthErrorCode({ status: 0 })).toBe("NETWORK");
+    expect(toAuthErrorCode({ status: 500, code: "SOMETHING" })).toBe("UNKNOWN");
+  });
+});

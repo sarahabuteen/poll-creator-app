@@ -18,7 +18,11 @@ export function LogInForm({ next }: { next: string }) {
     fields: ["email", "password"],
     validate: validateLogIn,
     submit: logIn,
-    onSuccess: () => router.replace(next),
+    onSuccess: () => {
+      router.replace(next);
+      // Server components re-read the session cookie on the next render.
+      router.refresh();
+    },
   });
   const signUpHref = next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`;
 
