@@ -13,7 +13,10 @@ const karla = Karla({
 });
 
 export const metadata: Metadata = {
-  title: "Tiebreak",
+  title: {
+    default: "Tiebreak",
+    template: "%s · Tiebreak",
+  },
   description: "Settle it in the group chat. Make a poll, share the link, reveal the winner.",
 };
 
@@ -23,7 +26,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${gabarito.variable} ${karla.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <a
+          href="#main"
+          className="sr-only rounded-full bg-cocoa px-5 py-3 font-display font-bold text-cream focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50"
+        >
+          Skip to main content
+        </a>
+        {children}
+        <div aria-hidden="true" className="paper-grain" />
+      </body>
     </html>
   );
 }
