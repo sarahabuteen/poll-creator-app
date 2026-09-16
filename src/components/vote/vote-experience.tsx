@@ -13,7 +13,7 @@ import { SuggestDialog } from "@/components/vote/suggest-dialog";
 import { usePublicPoll } from "@/components/vote/use-public-poll";
 import { VotedState } from "@/components/vote/voted-state";
 import type { PublicPollView } from "@/domain/views";
-import { castBallot } from "@/lib/api/client";
+import { castBallot, failureCopy } from "@/lib/api/client";
 import { castLabel, listNames } from "@/lib/vote/copy";
 import { DEFAULT_IDENTITY, FACE_SEEDS, identityAsPerson, NAME_MAX_LENGTH, TINTS, type Identity } from "@/lib/vote/presets";
 
@@ -172,7 +172,7 @@ export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollVi
       case "INVALID_INPUT":
         return setCastFailure("Something in the form isn’t right. Check your name and try again.");
       default:
-        return setCastFailure("That didn’t send. Check your connection and try again.");
+        return setCastFailure(failureCopy(result));
     }
   }
 

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { closingFocusId, ClosingTimeField, useClosingTime } from "@/components/create/closing-time-field";
 import { FormAlert } from "@/components/forms/form-alert";
 import { SheetDialog } from "@/components/vote/sheet-dialog";
-import { loginUrlForCurrentPage, reopenVoting } from "@/lib/api/client";
+import { failureCopy, loginUrlForCurrentPage, reopenVoting } from "@/lib/api/client";
 import { closingTimeError } from "@/lib/create/closing";
 
 type ReopenDialogProps = {
@@ -46,7 +46,7 @@ export function ReopenDialog({ open, slug, breakingTie, onClose }: ReopenDialogP
     setFailure(
       result.error.code === "CLOSING_TIME_INVALID"
         ? result.error.message
-        : "That didn’t go through. Check your connection and try again.",
+        : failureCopy(result, "Voting didn\u2019t reopen"),
     );
   }
 

@@ -11,7 +11,7 @@ import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-ca
 import { useLivePoll } from "@/components/poll/use-live-poll";
 import { useRaceAnnouncement } from "@/components/poll/use-race-announcement";
 import type { CreatorPollView, SuggestionView } from "@/domain/views";
-import { endVoting, loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
+import { endVoting, failureCopy, loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
 import type { ApiResult } from "@/lib/api/types";
 import { applyOverlays, type ModerationOverlay } from "@/lib/live/overlay";
 import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
@@ -175,7 +175,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
     if (result.ok || result.error.code === "POLL_SETTLED") return router.refresh();
     setEnding(false);
     if (result.status === 401) return window.location.assign(loginUrlForCurrentPage());
-    fail("Voting didn\u2019t end. Check your connection and try again.", "results-heading");
+    fail(failureCopy(result, "Voting didn\u2019t end"), "results-heading");
   }
 
   function dismissToast() {

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { FormAlert } from "@/components/forms/form-alert";
 import { TextField } from "@/components/forms/text-field";
 import { SheetDialog } from "@/components/vote/sheet-dialog";
-import { suggestOption } from "@/lib/api/client";
+import { failureCopy, suggestOption } from "@/lib/api/client";
 import { identityAsPerson, NAME_MAX_LENGTH, SUGGESTION_MAX_LENGTH, type Identity } from "@/lib/vote/presets";
 
 type SuggestDialogProps = {
@@ -73,7 +73,7 @@ export function SuggestDialog({ open, slug, identity, onIdentityChange, onClose,
       case "RATE_LIMITED":
         return setFailure("That\u2019s a lot of suggestions in a row. Wait a moment, then try again.");
       default:
-        return setFailure("That didn’t send. Check your connection and try again.");
+        return setFailure(failureCopy(result));
     }
   }
 

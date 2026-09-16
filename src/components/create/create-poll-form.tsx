@@ -7,7 +7,7 @@ import { FormAlert } from "@/components/forms/form-alert";
 import { TextField } from "@/components/forms/text-field";
 import { CheckIcon, PlusIcon, WarningIcon } from "@/components/icons";
 import { LIMITS } from "@/domain/limits";
-import { createPoll, loginUrlForCurrentPage } from "@/lib/api/client";
+import { createPoll, failureCopy, loginUrlForCurrentPage } from "@/lib/api/client";
 import { filledOptions, hasErrors, validateCreatePoll, type CreatePollErrors } from "@/lib/create/validation";
 
 function XIcon() {
@@ -115,7 +115,7 @@ export function CreatePollForm() {
     if (result.status === 401) return window.location.assign(loginUrlForCurrentPage());
     setFailure(
       result.error.code === "NETWORK" || result.error.code === "INTERNAL"
-        ? "That didn’t send. Check your connection and try again."
+        ? failureCopy(result)
         : // Rule messages are written for people ("Each option needs a different name.").
           result.error.message,
     );

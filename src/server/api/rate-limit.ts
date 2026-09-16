@@ -48,7 +48,10 @@ export type LimitResult = { allowed: boolean; count: number; retryAfterSeconds: 
  * starts a fresh window or increments the current one.
  */
 export async function consume(db: Db, key: string, { max, windowMs }: Pick<Limit, "max" | "windowMs">, now = new Date()): Promise<LimitResult> {
-  const expired = new Date(now.getTime() - windowMs);
+  // Raw SQL params skip Drizzle's column mapping, and the postgres-js driver
+  // (Neon) can't serialise a Date there. Send ISO strings with explicit casts.
+  const expired = sql`${new Date(now.getTime() - windowMs).toISOString()}::timestamptz`;
+  const startedNow = sql`${now.toISOString()}::timestamptz`;
   const [row] = await db
     .insert(rateLimits)
     .values({ key, windowStartedAt: now, count: 1 })
@@ -56,7 +59,7 @@ export async function consume(db: Db, key: string, { max, windowMs }: Pick<Limit
       target: rateLimits.key,
       set: {
         count: sql`case when ${rateLimits.windowStartedAt} <= ${expired} then 1 else ${rateLimits.count} + 1 end`,
-        windowStartedAt: sql`case when ${rateLimits.windowStartedAt} <= ${expired} then ${now} else ${rateLimits.windowStartedAt} end`,
+        windowStartedAt: sql`case when ${rateLimits.windowStartedAt} <= ${expired} then ${startedNow} else ${rateLimits.windowStartedAt} end`,
       },
     })
     .returning({ count: rateLimits.count, windowStartedAt: rateLimits.windowStartedAt });

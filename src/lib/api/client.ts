@@ -91,6 +91,16 @@ export function reopenVoting(slug: string, closesAt: Date) {
   });
 }
 
+/**
+ * Plain words for a request that failed unexpectedly: a network problem is the
+ * visitor's to retry; a server error isn't their connection's fault.
+ */
+export function failureCopy(result: { error: { code: string } }, action = "That didn\u2019t send"): string {
+  return result.error.code === "NETWORK"
+    ? `${action}. Check your connection and try again.`
+    : `${action}: something went wrong on our side. Try again in a moment.`;
+}
+
 /** Where to send a creator whose session has expired, so they come back here after logging in. */
 export function loginUrlForCurrentPage(): string {
   return `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;

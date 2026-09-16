@@ -61,3 +61,12 @@ describe("toAuthErrorCode", () => {
     expect(toAuthErrorCode({ status: 500, code: "SOMETHING" })).toBe("UNKNOWN");
   });
 });
+
+describe("failureCopy", () => {
+  it("blames the connection only for network failures", async () => {
+    const { failureCopy } = await import("@/lib/api/client");
+    expect(failureCopy({ error: { code: "NETWORK" } })).toBe("That didn’t send. Check your connection and try again.");
+    expect(failureCopy({ error: { code: "INTERNAL" } })).toBe("That didn’t send: something went wrong on our side. Try again in a moment.");
+    expect(failureCopy({ error: { code: "INTERNAL" } }, "Voting didn’t end")).toMatch(/^Voting didn’t end: /);
+  });
+});
