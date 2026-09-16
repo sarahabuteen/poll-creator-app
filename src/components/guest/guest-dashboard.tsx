@@ -6,11 +6,15 @@ import { SiteHeader } from "@/components/site-header";
 import { guestSummary } from "@/lib/guest/views";
 import { useNow } from "@/lib/time";
 
-/** Sample links use the reserved .test domain, as the brand kit's mockups do. */
-export const GUEST_APP_URL = "https://tiebreak.test";
+/**
+ * Sample polls only exist in this tab, so there's no vote page to share. Copy
+ * link gives the sample poll in guest mode instead: a real link that works for
+ * whoever opens it.
+ */
+export const guestShareUrl = (appUrl: string, slug: string) => `${appUrl}/guest/polls/${slug}`;
 
 export function GuestDashboard({ show }: { show: "all" | "settled" }) {
-  const { data, generatedAt } = useGuest();
+  const { data, generatedAt, appUrl } = useGuest();
   // Until the client clock is known, summarise at the moment the data was generated so server and client agree.
   const now = new Date(useNow() ?? generatedAt);
   const polls = data.polls.map((poll) => guestSummary(poll, now));
@@ -24,7 +28,7 @@ export function GuestDashboard({ show }: { show: "all" | "settled" }) {
           {show === "all" ? "My polls" : "Closed polls"}
         </h1>
         <div className="mt-8">
-          <Dashboard polls={polls} appUrl={GUEST_APP_URL} show={show} pollsPath="/guest/polls" />
+          <Dashboard polls={polls} appUrl={appUrl} show={show} pollsPath="/guest/polls" sharePath="/guest/polls" />
         </div>
       </main>
     </>

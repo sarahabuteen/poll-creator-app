@@ -16,9 +16,9 @@ type DashboardProps = {
   show: "all" | "settled";
   /** Where poll pages live: "/polls" for creators, "/guest/polls" in guest mode. */
   pollsPath?: string;
+  /** What Copy link copies: the vote page, or in guest mode the sample poll itself. */
+  sharePath?: string;
 };
-
-const shareUrl = (appUrl: string, slug: string) => `${appUrl}/p/${slug}`;
 
 
 function WhenLine({ poll }: { poll: CreatorPollSummary }) {
@@ -44,7 +44,7 @@ function WaitingBadge({ count }: { count: number }) {
 }
 
 /** The poll that needs attention first. A zero-vote poll gets a nudge to share instead of an empty race. */
-function FeaturedPoll({ poll, appUrl, pollsPath }: { poll: CreatorPollSummary; appUrl: string; pollsPath: string }) {
+function FeaturedPoll({ poll, appUrl, pollsPath, sharePath }: { poll: CreatorPollSummary; appUrl: string; pollsPath: string; sharePath: string }) {
   const { state, copy } = useCopy();
   const pollHref = (item: CreatorPollSummary) => `${pollsPath}/${item.slug}`;
   const noVotes = poll.totalVotes === 0;
@@ -87,7 +87,7 @@ function FeaturedPoll({ poll, appUrl, pollsPath }: { poll: CreatorPollSummary; a
         </Link>
         <button
           type="button"
-          onClick={() => copy(shareUrl(appUrl, poll.slug))}
+          onClick={() => copy(`${appUrl}${sharePath}/${poll.slug}`)}
           className="press inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-2 border-cocoa bg-card px-6 font-display text-sm font-bold hover:bg-cream-deep"
         >
           {state === "copied" ? <CheckIcon className="motion-safe:animate-check" /> : <CopyIcon />}
@@ -135,7 +135,7 @@ function PollList({ id, title, polls, startDelay, pollsPath }: { id: string; tit
 }
 
 /** The creator's polls, answering "what needs my attention?" before "what exists?". */
-export function Dashboard({ polls, appUrl, show, pollsPath = "/polls" }: DashboardProps) {
+export function Dashboard({ polls, appUrl, show, pollsPath = "/polls", sharePath = "/p" }: DashboardProps) {
   const { open, settled } = groupPolls(polls);
   const [featured, ...otherOpen] = open;
   const waiting = open.reduce((sum, poll) => sum + poll.pendingSuggestions, 0);
@@ -158,7 +158,7 @@ export function Dashboard({ polls, appUrl, show, pollsPath = "/polls" }: Dashboa
         </p>
       )}
       {featured ? (
-        <FeaturedPoll poll={featured} appUrl={appUrl} pollsPath={pollsPath} />
+        <FeaturedPoll poll={featured} appUrl={appUrl} pollsPath={pollsPath} sharePath={sharePath} />
       ) : (
         <p className="rounded-lg border-[2.5px] border-dashed border-cocoa-faint p-6 text-cocoa-soft">
           No polls open right now. Start one when the group chat needs a decision.

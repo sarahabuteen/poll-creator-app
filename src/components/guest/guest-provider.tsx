@@ -18,6 +18,8 @@ import { guestCreatorView } from "@/lib/guest/views";
 type GuestContextValue = {
   data: GuestData;
   generatedAt: number;
+  /** The real site, so copied links work. */
+  appUrl: string;
   /** Polls the guest ended themselves this session get a fresh reveal; sample results play once. */
   revealKeyFor: (slug: string) => string;
 };
@@ -36,7 +38,7 @@ const notFound = <T,>(): ApiResult<T> => ({ ok: false, status: 404, error: { cod
  * Guest mode's "server": the sample data held in this tab. Every action runs
  * the real rules against it and nothing is saved, so a reload starts fresh.
  */
-export function GuestProvider({ initial, generatedAt, children }: { initial: GuestData; generatedAt: string; children: ReactNode }) {
+export function GuestProvider({ initial, generatedAt, appUrl, children }: { initial: GuestData; generatedAt: string; appUrl: string; children: ReactNode }) {
   const [data, setData] = useState(initial);
   // Actions read the latest state synchronously, even between renders.
   const latest = useRef(initial);
@@ -92,12 +94,13 @@ export function GuestProvider({ initial, generatedAt, children }: { initial: Gue
     () => ({
       data,
       generatedAt: Date.parse(generatedAt),
+      appUrl,
       revealKeyFor: (slug) => {
         const poll = data.polls.find((item) => item.id === slug);
         return endedInSession.has(slug) ? `guest:${slug}:${poll?.settledAt}` : `guest:${slug}:sample`;
       },
     }),
-    [data, generatedAt, endedInSession],
+    [data, generatedAt, appUrl, endedInSession],
   );
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { GUEST_APP_URL } from "@/components/guest/guest-dashboard";
+import { guestShareUrl } from "@/components/guest/guest-dashboard";
 import { useGuest } from "@/components/guest/guest-provider";
 import { PollLiveView } from "@/components/poll/poll-live-view";
 import { CreatorResult } from "@/components/reveal/creator-result";
@@ -11,7 +11,7 @@ import { useNow } from "@/lib/time";
 
 /** A sample poll on the organiser's real screens: live results, moderation, ending, the reveal. */
 export function GuestPoll({ slug }: { slug: string }) {
-  const { data, generatedAt, revealKeyFor } = useGuest();
+  const { data, generatedAt, appUrl, revealKeyFor } = useGuest();
   const now = new Date(useNow() ?? generatedAt);
   const poll = data.polls.find((item) => item.id === slug);
 
@@ -32,7 +32,7 @@ export function GuestPoll({ slug }: { slug: string }) {
   }
 
   const view = guestCreatorView(poll, now);
-  const shareUrl = `${GUEST_APP_URL}/p/${view.slug}`;
+  const shareUrl = guestShareUrl(appUrl, view.slug);
 
   return (
     <>

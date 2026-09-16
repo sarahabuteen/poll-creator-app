@@ -4,6 +4,7 @@ import { GuestBanner } from "@/components/guest/guest-banner";
 import { GuestProvider } from "@/components/guest/guest-provider";
 import type { GuestData } from "@/lib/guest/shift";
 import { serverApi } from "@/lib/api/server";
+import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: { default: "Guest mode", template: "%s · Guest mode · Tiebreak" },
@@ -22,7 +23,7 @@ export default async function GuestLayout({ children }: LayoutProps<"/guest">) {
     <>
       <GuestBanner />
       {result.ok ? (
-        <GuestProvider initial={{ creator: result.data.creator, polls: result.data.polls }} generatedAt={result.data.generatedAt}>
+        <GuestProvider initial={{ creator: result.data.creator, polls: result.data.polls }} generatedAt={result.data.generatedAt} appUrl={env().NEXT_PUBLIC_APP_URL}>
           {children}
         </GuestProvider>
       ) : (
