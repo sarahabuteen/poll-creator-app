@@ -35,7 +35,7 @@ export function SuggestionCard({ suggestion, onApprove, onDecline }: SuggestionC
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:gap-4">
         <button
           type="button"
           id={approveButtonId(suggestion.id)}

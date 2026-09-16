@@ -68,11 +68,11 @@ export function SharePanel({ title, slug, shareUrl }: SharePanelProps) {
           <p className="min-w-0 flex-1 truncate font-display text-base font-bold" title={shareUrl}>
             {displayUrl}
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => copy(shareUrl)}
-              className="press inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-cocoa bg-cocoa px-5 font-display text-sm font-bold whitespace-nowrap text-cream shadow-press-cocoa sm:flex-none"
+              className="press inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-cocoa bg-cocoa px-5 font-display text-sm font-bold text-cream shadow-press-cocoa sm:flex-none sm:whitespace-nowrap"
             >
               {copyState === "copied" ? <CheckIcon className="motion-safe:animate-check" /> : <CopyIcon />}
               {copyState === "copied" ? "Copied" : "Copy link"}
@@ -81,7 +81,7 @@ export function SharePanel({ title, slug, shareUrl }: SharePanelProps) {
               <button
                 type="button"
                 onClick={share}
-                className="press min-h-12 flex-1 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold whitespace-nowrap hover:bg-cream sm:flex-none"
+                className="press min-h-12 flex-1 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold hover:bg-cream sm:flex-none sm:whitespace-nowrap"
               >
                 Share&hellip;
               </button>

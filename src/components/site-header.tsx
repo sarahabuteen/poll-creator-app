@@ -35,7 +35,7 @@ export function SiteHeader({ account, current, showNewPoll = true }: SiteHeaderP
         </Link>
 
         <nav aria-label="Main" className="order-last w-full sm:order-none sm:w-auto">
-          <ul role="list" className="flex gap-1">
+          <ul role="list" className="flex flex-wrap gap-1">
             {navItems.map((item) => {
               const active = item.key === current;
               return (

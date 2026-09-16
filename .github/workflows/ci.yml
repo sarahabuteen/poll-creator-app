@@ -8,6 +8,19 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      # A real Postgres, so tests also run through the postgres-js driver production uses.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +32,30 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      # Database tests run against in-memory PGlite: no service container or secrets needed.
-      - run: npm test
+      - name: Unit and API tests (PGlite)
+        run: npm test
+      - name: Unit and API tests (real Postgres)
+        run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Accessibility (axe), keyboard-only voting, reflow at 320px and 200% text, reduced motion.
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/

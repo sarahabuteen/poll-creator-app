@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { DashboardUnavailable } from "@/components/dashboard/dashboard-unavailable";
 import { FirstRun } from "@/components/dashboard/first-run";
@@ -6,6 +7,9 @@ import { loadDashboard } from "@/lib/api/dashboard";
 import { creatorAsPerson } from "@/lib/api/session";
 import { requireSignedInCreator } from "@/lib/auth/require-creator";
 import { env } from "@/lib/env";
+
+// The root layout's title template doesn't apply to a page in the same segment.
+export const metadata: Metadata = { title: { absolute: "My polls · Tiebreak" } };
 
 /** My polls. Signed-out visitors are sent to log in by the proxy. */
 export default async function Home() {

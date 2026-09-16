@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Prom
   const poll = await loadPoll((await params).slug);
   if (!poll) return { title: "Poll not found" };
   const suffix = poll.status === "settled" ? "result" : poll.viewerBallot ? "you’re in" : "vote";
-  return { title: `${poll.title}: ${suffix}`, robots: { index: false, follow: false } };
+  return { title: `${poll.title} — ${suffix}`, robots: { index: false, follow: false } };
 }
 
 /** The public vote page: no account, no login wall, one link from the group chat. */

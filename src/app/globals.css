@@ -88,6 +88,15 @@
     outline: var(--focus-ring);
     outline-offset: var(--focus-ring-offset);
   }
+
+  /* Reflow under large text: fieldsets default to min-content width, and
+     user-written titles can hold words longer than a phone is wide. */
+  fieldset {
+    min-inline-size: 0;
+  }
+  body {
+    overflow-wrap: break-word;
+  }
 }
 
 /* Print finish: riso misregistration on page-title display type only. */

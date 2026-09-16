@@ -21,7 +21,7 @@ export function ShareDock({ shareUrl, onEndVoting, ending }: ShareDockProps) {
           <span className="truncate font-display text-base font-bold text-cocoa">{shareUrl.replace(/^https?:\/\//, "")}</span>
         </p>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* No confirmation: ending isn't final (it can be reopened), and the note below says so. */}
           <button
             type="button"

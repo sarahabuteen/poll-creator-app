@@ -8,7 +8,10 @@ import { creatorAsPerson } from "@/lib/api/session";
 import { requireSignedInCreator } from "@/lib/auth/require-creator";
 import { env } from "@/lib/env";
 
-export const metadata: Metadata = { title: "Share your poll" };
+export async function generateMetadata({ params }: PageProps<"/polls/[id]/share">): Promise<Metadata> {
+  const result = await serverApi<CreatorPollView>(`/api/creator/polls/${encodeURIComponent((await params).id)}`);
+  return { title: result.ok ? `Share ${result.data.title}` : "Share your poll" };
+}
 
 /** The share step after creating a poll (and any time the creator wants the link again). */
 export default async function SharePage({ params }: PageProps<"/polls/[id]/share">) {

@@ -58,3 +58,8 @@ next-env.d.ts
 
 # Local embedded database (PGlite)
 .pglite*/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
