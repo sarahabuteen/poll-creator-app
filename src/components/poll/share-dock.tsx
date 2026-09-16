@@ -16,7 +16,7 @@ export function ShareDock({ shareUrl }: { shareUrl: string }) {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(`https://${shareUrl}`);
+      await navigator.clipboard.writeText(shareUrl);
       setCopyState("copied");
     } catch {
       setCopyState("failed");
@@ -28,7 +28,7 @@ export function ShareDock({ shareUrl }: { shareUrl: string }) {
       <div className="flex flex-col gap-3 rounded-lg bg-cream-deep p-4 sm:flex-row sm:items-center sm:rounded-full sm:py-2 sm:pr-2 sm:pl-6">
         <p className="flex min-w-0 flex-1 flex-col text-sm text-cocoa-soft sm:flex-row sm:items-baseline sm:gap-2">
           <span className="shrink-0">Anyone with the link can vote:</span>
-          <span className="truncate font-display text-base font-bold text-cocoa">{shareUrl}</span>
+          <span className="truncate font-display text-base font-bold text-cocoa">{shareUrl.replace(/^https?:\/\//, "")}</span>
         </p>
 
         <div className="flex gap-2">

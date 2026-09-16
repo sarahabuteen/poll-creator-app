@@ -37,7 +37,6 @@ export type Poll = {
   createdAt: string;
   closesAt: string;
   settledAt: string | null;
-  shareUrl: string;
   options: PollOption[];
   votes: Vote[];
 };

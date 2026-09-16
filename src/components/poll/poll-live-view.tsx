@@ -11,7 +11,7 @@ import type { Poll, PollOption, SuggestionStatus } from "@/lib/types";
 
 type Declined = { option: PollOption };
 
-export function PollLiveView({ poll: initialPoll }: { poll: Poll }) {
+export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shareUrl: string }) {
   const [options, setOptions] = useState(initialPoll.options);
   const [justAdded, setJustAdded] = useState<ReadonlySet<string>>(new Set());
   const [declined, setDeclined] = useState<Declined | null>(null);
@@ -132,7 +132,7 @@ export function PollLiveView({ poll: initialPoll }: { poll: Poll }) {
       )}
 
       <div className="mt-8">
-        <ShareDock shareUrl={poll.shareUrl} />
+        <ShareDock shareUrl={shareUrl} />
       </div>
 
       {declined && (

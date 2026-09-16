@@ -2,7 +2,7 @@
 
 import { Avatar } from "@/components/avatar";
 import { ClockIcon } from "@/components/icons";
-import { formatClosing, shiftSampleTime, timeAgo, useNow } from "@/lib/time";
+import { formatClosing, timeAgo, useNow } from "@/lib/time";
 import type { Vote } from "@/lib/types";
 
 export function StatusPill() {
@@ -16,7 +16,7 @@ export function StatusPill() {
 
 export function ClosesChip({ closesAt }: { closesAt: string }) {
   const now = useNow();
-  const closing = now === null ? null : formatClosing(shiftSampleTime(closesAt, now), now);
+  const closing = now === null ? null : formatClosing(Date.parse(closesAt), now);
 
   return (
     <span className="inline-flex min-h-9 items-center gap-2 rounded-full border-[1.5px] border-cream-deep bg-card px-4 text-sm text-cocoa-soft">
@@ -58,7 +58,7 @@ export function CrewLine({ votes }: { votes: Vote[] }) {
       </ul>
       <p className="text-sm text-cocoa-soft">
         <strong className="font-extrabold text-cocoa tabular-nums">{voters} of your crew</strong> voted
-        {now !== null && <> &middot; last one {timeAgo(shiftSampleTime(recent[0].castAt, now), now)}</>}
+        {now !== null && <> &middot; last one {timeAgo(Date.parse(recent[0].castAt), now)}</>}
       </p>
     </div>
   );

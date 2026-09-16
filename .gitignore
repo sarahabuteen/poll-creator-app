@@ -55,3 +55,6 @@ coverage/
 .vercel
 *.pem
 next-env.d.ts
+
+# Local embedded database (PGlite)
+.pglite/
