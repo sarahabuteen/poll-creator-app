@@ -27,6 +27,8 @@
   --color-butter-deep: var(--color-butter-deep);
 
   --color-scrim-on-tangerine: var(--color-scrim-on-tangerine);
+  --color-ink: var(--color-ink);
+  --color-accent-text: var(--color-accent-text);
 
   --color-tint-peach: var(--tint-peach);
   --color-tint-teal-soft: var(--tint-teal-soft);
@@ -122,6 +124,18 @@
   opacity: 0.04;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* On the dark palette, multiply would only darken; lighten the grain instead. */
+:root[data-theme="dark"] .paper-grain {
+  mix-blend-mode: screen;
+  opacity: 0.03;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .paper-grain {
+    mix-blend-mode: screen;
+    opacity: 0.03;
+  }
 }
 
 @media (forced-colors: active), print {

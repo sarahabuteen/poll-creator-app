@@ -34,6 +34,13 @@
   --color-butter: #F3C64F;
   --color-butter-deep: #D9A82E;    /* pressed/hover on butter, butter borders */
 
+  /* Fixed dark ink for surfaces that stay light in both themes (butter,
+     cream-bright): never flips, unlike cocoa */
+  --color-ink: #38261A;
+  /* Tangerine as text. In light it matches tangerine-deep; dark mode needs a
+     lighter one, since tangerine-deep must stay dark enough to be a button fill */
+  --color-accent-text: #B93E1E;
+
   /* Scrim — cocoa tint that gets small bold cream-bright text to AA over tangerine */
   --color-scrim-on-tangerine: rgba(56, 38, 26, 0.35);
 
@@ -115,7 +122,59 @@
   --page-max-width: 72.5rem;   /* nav container, dashboard, landing */
 }
 
-/* No dark theme here on purpose: light is the personality of this
-   direction. If you take on the dark-mode stretch, derive a lamplit
-   deep-cocoa palette with the same color roles and AA pairs (see
-   the brand kit) rather than inverting these values. */
+/* ============================================================
+   Dark mode — lamplit deep cocoa, same roles as the light theme.
+   Surfaces go dark and warm, ink goes to lamplight cream; tangerine,
+   butter and the on-accent cream stay put, so winning still looks
+   like winning. Every pair is checked by scripts/check-contrast.mjs.
+   Follows the system unless the viewer picks a theme
+   (data-theme on <html>).
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --color-cream: #1C130E;
+  --color-cream-deep: #2C1F17;
+  --color-card: #261A13;
+
+  --color-cocoa: #F4E7D4;
+  --color-cocoa-soft: #C9B49C;
+  --color-cocoa-faint: #6E5A4A;
+
+  --color-accent-text: #FF9A73;
+
+  --color-teal: #4DB39E;
+  --color-teal-deep: #A8E0D0;
+  --color-teal-soft: #173B34;
+
+  --shadow-press-teal: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-press-cocoa: inset 0 -2px 0 rgba(56, 38, 26, 0.35);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-cream: #1C130E;
+    --color-cream-deep: #2C1F17;
+    --color-card: #261A13;
+
+    --color-cocoa: #F4E7D4;
+    --color-cocoa-soft: #C9B49C;
+    --color-cocoa-faint: #6E5A4A;
+
+    --color-accent-text: #FF9A73;
+
+    --color-teal: #4DB39E;
+    --color-teal-deep: #A8E0D0;
+    --color-teal-soft: #173B34;
+
+    --shadow-press-teal: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-press-cocoa: inset 0 -2px 0 rgba(56, 38, 26, 0.35);
+
+    color-scheme: dark;
+  }
+}

@@ -26,6 +26,8 @@ export default defineConfig({
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "phone", use: { ...devices["Pixel 7"] }, testMatch: /reflow|vote/ },
+    // Dark mode meets the same AA bar: the full axe sweep again, on the dark palette.
+    { name: "desktop-dark", use: { ...devices["Desktop Chrome"], colorScheme: "dark" }, testMatch: /accessibility|theme/ },
   ],
   webServer: {
     command: `rm -rf .pglite-playwright && npm run db:setup && npx next dev --port ${PORT}`,

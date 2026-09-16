@@ -9,6 +9,8 @@ test("a voter can cast a vote using only the keyboard", async ({ page, browserNa
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to main content" })).toBeFocused();
   await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: /^Theme:/ })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByLabel("Your name")).toBeFocused();
   await page.keyboard.type("Kiki");
 

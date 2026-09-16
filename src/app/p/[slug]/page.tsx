@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { LogoMark } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { VoteExperience } from "@/components/vote/vote-experience";
 import type { PublicPollView } from "@/domain/views";
 import { serverApi } from "@/lib/api/server";
@@ -31,9 +32,12 @@ export default async function VotePage({ params }: PageProps<"/p/[slug]">) {
   return (
     <>
       {/* Voters never need the rest of the app, so the logo isn't a way out. */}
-      <header className="mx-auto flex min-h-16 w-full max-w-content items-center gap-2 px-4 font-display text-xl font-extrabold tracking-[-0.02em] sm:px-6">
+      <header className="mx-auto flex min-h-16 w-full max-w-content flex-wrap items-center gap-2 px-4 font-display text-xl font-extrabold tracking-[-0.02em] sm:px-6">
         <LogoMark size={24} />
         tiebreak
+        <span className="ml-auto">
+          <ThemeToggle />
+        </span>
       </header>
       <main id="main" className="mx-auto w-full max-w-content flex-1 px-4 pt-4 pb-16 sm:px-6 sm:pt-8">
         <VoteExperience poll={poll} shareUrl={`${env().NEXT_PUBLIC_APP_URL}/p/${poll.slug}`} />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
 import { LogoMark, PlusIcon } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { Person } from "@/domain/views";
 
 type SiteHeaderProps = {
@@ -28,7 +29,7 @@ export function SiteHeader({ account, current, showNewPoll = true }: SiteHeaderP
         middle column the width of the poll column below, so the two align.
         47rem = --content-max-width minus the main column's side padding.
       */}
-      <div className="flex min-h-(--nav-height) flex-wrap items-center gap-x-8 gap-y-2 py-3 min-[72rem]:grid min-[72rem]:grid-cols-[1fr_47rem_1fr] min-[72rem]:gap-x-0">
+      <div className="flex min-h-(--nav-height) flex-wrap items-center gap-x-8 gap-y-2 py-3 min-[84rem]:grid min-[84rem]:grid-cols-[1fr_47rem_1fr] min-[84rem]:gap-x-0">
         <Link href={home} className="flex items-center justify-self-start gap-2 rounded-full font-display text-[1.625rem] font-extrabold tracking-[-0.02em] text-cocoa">
           <LogoMark />
           tiebreak
@@ -55,7 +56,8 @@ export function SiteHeader({ account, current, showNewPoll = true }: SiteHeaderP
           </ul>
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-4 justify-self-end">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-3 justify-self-end sm:shrink-0 sm:flex-nowrap">
+          <ThemeToggle />
           {showNewPoll && (
             <>
               <Link

@@ -32,6 +32,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      # Every colour pair in both themes meets WCAG AA.
+      - run: npm run check:contrast
       - name: Unit and API tests (PGlite)
         run: npm test
       - name: Unit and API tests (real Postgres)

@@ -40,7 +40,7 @@ function WaitingBadge({ count }: { count: number }) {
   const text = suggestionsWaiting(count);
   if (!text) return null;
   // Butter is for pending suggestions in the brand kit; the words carry the meaning.
-  return <span className="inline-flex items-center rounded-full border-[1.5px] border-cocoa bg-butter px-3 py-0.5 text-xs font-extrabold">{text}</span>;
+  return <span className="inline-flex items-center rounded-full border-[1.5px] border-ink bg-butter px-3 py-0.5 text-xs font-extrabold text-ink">{text}</span>;
 }
 
 /** The poll that needs attention first. A zero-vote poll gets a nudge to share instead of an empty race. */

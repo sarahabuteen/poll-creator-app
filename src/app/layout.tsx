@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Gabarito, Karla } from "next/font/google";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const gabarito = Gabarito({
@@ -20,12 +21,25 @@ export const metadata: Metadata = {
   description: "Settle it in the group chat. Make a poll, share the link, reveal the winner.",
 };
 
+export const viewport: Viewport = {
+  // Browser chrome matches the page: cream by day, deep cocoa at night.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAF2E3" },
+    { media: "(prefers-color-scheme: dark)", color: "#1C130E" },
+  ],
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${gabarito.variable} ${karla.variable} h-full antialiased`}
+      // The boot script may set data-theme before React hydrates.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <a
           href="#main"

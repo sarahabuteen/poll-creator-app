@@ -218,7 +218,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-2">
         <p className="font-display text-base font-bold text-cocoa tabular-nums">
-          {pluralVotes(results.totalVotes)} in &mdash; <span className="text-tangerine-deep">{raceCall(results)}</span>
+          {pluralVotes(results.totalVotes)} in &mdash; <span className="text-accent-text">{raceCall(results)}</span>
         </p>
         <LiveStatus status={view.status} connection={live.connection} />
       </div>

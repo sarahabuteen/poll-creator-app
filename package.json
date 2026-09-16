@@ -15,7 +15,8 @@
     "db:seed": "tsx --env-file-if-exists=.env.local scripts/db-seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed",
     "test:e2e": "playwright test",
-    "test:postgres": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:test@localhost:55432/postgres} vitest run"
+    "test:postgres": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:test@localhost:55432/postgres} vitest run",
+    "check:contrast": "node scripts/check-contrast.mjs"
   },
   "dependencies": {
     "@dicebear/core": "^9.4.3",

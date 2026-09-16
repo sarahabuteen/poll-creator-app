@@ -29,7 +29,7 @@ export function LeaderCard({ results }: { results: PollResults }) {
     >
       <p
         aria-hidden="true"
-        className="absolute top-5 -right-15 w-52 rotate-[38deg] border-y-2 border-cocoa bg-butter py-1 text-center font-display text-xs font-extrabold tracking-[0.06em] text-cocoa uppercase sm:top-7 sm:-right-16 sm:w-60 sm:py-1.5 sm:text-sm"
+        className="absolute top-5 -right-15 w-52 rotate-[38deg] border-y-2 border-ink bg-butter py-1 text-center font-display text-xs font-extrabold tracking-[0.06em] text-ink uppercase sm:top-7 sm:-right-16 sm:w-60 sm:py-1.5 sm:text-sm"
       >
         {ribbon}
       </p>

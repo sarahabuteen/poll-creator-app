@@ -126,7 +126,7 @@ export function ResultReveal({ poll, shareUrl, viewerOptionIds = [], creatorActi
           <div className={`relative overflow-hidden rounded-lg border-[2.5px] border-cocoa bg-tangerine p-6 text-cream-bright sm:p-8 ${playing ? "animate-drop-in" : ""}`}>
             <p
               aria-hidden="true"
-              className={`absolute top-6 -right-15 w-52 rotate-[38deg] border-y-2 border-cocoa bg-butter py-1 text-center font-display text-xs font-extrabold tracking-[0.06em] text-cocoa uppercase sm:top-8 sm:-right-14 sm:w-60 sm:py-1.5 sm:text-sm ${
+              className={`absolute top-6 -right-15 w-52 rotate-[38deg] border-y-2 border-ink bg-butter py-1 text-center font-display text-xs font-extrabold tracking-[0.06em] text-ink uppercase sm:top-8 sm:-right-14 sm:w-60 sm:py-1.5 sm:text-sm ${
                 playing ? "animate-swing-in" : ""
               }`}
               style={playing ? { animationDelay: "650ms" } : undefined}

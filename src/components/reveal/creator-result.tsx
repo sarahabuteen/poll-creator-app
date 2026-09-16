@@ -28,7 +28,7 @@ export function CreatorResult({ poll, shareUrl, revealKey }: { poll: CreatorPoll
           <button
             type="button"
             onClick={() => setReopening("tie")}
-            className="press min-h-12 rounded-full border-2 border-cocoa bg-cream-bright px-6 font-display text-sm font-bold text-cocoa shadow-press-cocoa"
+            className="press min-h-12 rounded-full border-2 border-ink bg-cream-bright px-6 font-display text-sm font-bold text-ink shadow-press-cocoa"
           >
             Break the tie: reopen voting
           </button>

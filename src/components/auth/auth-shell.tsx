@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LogoMark } from "@/components/icons";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthShellProps = {
   title: string;
@@ -12,7 +13,7 @@ type AuthShellProps = {
 export function AuthShell({ title, intro, children }: AuthShellProps) {
   return (
     <>
-      <header className="mx-auto flex min-h-(--nav-height) w-full max-w-page items-center px-4 sm:px-6">
+      <header className="mx-auto flex min-h-(--nav-height) w-full max-w-page flex-wrap items-center gap-x-4 px-4 sm:px-6">
         <Link
           href="/"
           className="flex items-center gap-2 rounded-full font-display text-[1.625rem] font-extrabold tracking-[-0.02em] text-cocoa"
@@ -20,6 +21,9 @@ export function AuthShell({ title, intro, children }: AuthShellProps) {
           <LogoMark />
           tiebreak
         </Link>
+        <span className="ml-auto">
+          <ThemeToggle />
+        </span>
       </header>
 
       <main id="main" className="mx-auto w-full max-w-[28rem] flex-1 px-4 pt-6 pb-16 sm:pt-12">
