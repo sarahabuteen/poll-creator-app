@@ -1,30 +1,79 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { LeaderCard } from "@/components/poll/leader-card";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { DecisionToast } from "@/components/poll/decision-toast";
+import { LEADER_CARD_ID, LeaderCard } from "@/components/poll/leader-card";
 import { packRowId, PackList } from "@/components/poll/pack-list";
-import { ClosesChip, CrewLine, StatusPill } from "@/components/poll/poll-meta";
+import { ClosesChip, CrewLine, LiveStatus, StatusPill } from "@/components/poll/poll-meta";
 import { ShareDock } from "@/components/poll/share-dock";
 import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-card";
-import type { BallotOptionView, CreatorPollView, SuggestionView } from "@/domain/views";
+import { useLivePoll } from "@/components/poll/use-live-poll";
+import { useRaceAnnouncement } from "@/components/poll/use-race-announcement";
+import type { CreatorPollView, SuggestionView } from "@/domain/views";
+import { loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
+import type { ApiResult } from "@/lib/api/types";
+import { applyOverlays, type ModerationOverlay } from "@/lib/live/overlay";
 import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
 
-/** A declined suggestion and where it sat in the pending list, so undo can put it back. */
-type Declined = { suggestion: SuggestionView; index: number };
+type ToastState =
+  | { kind: "decided"; decision: "approved" | "declined"; suggestion: SuggestionView }
+  | { kind: "error"; message: string };
 
-// Moderation here only updates local state; scope 3 wires it to the server commands.
-export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
-  const [ballot, setBallot] = useState<BallotOptionView[]>(poll.options);
-  const [pending, setPending] = useState<SuggestionView[]>(poll.pendingSuggestions);
+const TOAST_DISMISS_ID = "decision-toast-dismiss";
+
+function failureMessage(result: Extract<ApiResult<unknown>, { ok: false }>): string {
+  switch (result.error.code) {
+    case "SUGGESTION_ALREADY_DECIDED":
+      return "That suggestion has already been decided.";
+    case "UNDO_UNAVAILABLE":
+      // Written for people: "It's too late to undo that decision." etc.
+      return result.error.message;
+    case "POLL_SETTLED":
+      return "Voting has ended, so the ballot can’t change now.";
+    case "POLL_NOT_FOUND":
+    case "SUGGESTION_NOT_FOUND":
+      return "That suggestion isn’t there any more.";
+    default:
+      return "That didn’t go through. Try again.";
+  }
+}
+
+/** The creator's live results: polled from the API, with moderation sent back to it. */
+export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
+  const live = useLivePoll(initial);
+  const [overlays, setOverlays] = useState<ModerationOverlay[]>([]);
   const [justAdded, setJustAdded] = useState<ReadonlySet<string>>(new Set());
-  const [declined, setDeclined] = useState<Declined | null>(null);
-  const [announcement, setAnnouncement] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [undoing, setUndoing] = useState(false);
+  const [moderationMessage, setModerationMessage] = useState("");
   // Where focus should land once React commits a moderation change. Every
   // handler that sets it also updates state, so the effect below always runs.
   const focusTarget = useRef<string | null>(null);
   const undoRef = useRef<HTMLButtonElement>(null);
 
-  const results = useMemo(() => deriveResults(ballot), [ballot]);
+  const view = useMemo(() => applyOverlays(live.view, overlays), [live.view, overlays]);
+  const results = useMemo(() => deriveResults(view.options), [view.options]);
+  const raceMessage = useRaceAnnouncement(results);
+  const open = view.status === "open";
+
+  // Live updates must never drop focus. If the row someone was on leaves the
+  // pack (its option took the lead), send focus to where it went.
+  const lastFocusedRow = useRef<string | null>(null);
+  useEffect(() => {
+    const track = (event: FocusEvent) => {
+      const id = (event.target as HTMLElement | null)?.id ?? "";
+      lastFocusedRow.current = id.startsWith("option-") ? id : null;
+    };
+    document.addEventListener("focusin", track);
+    return () => document.removeEventListener("focusin", track);
+  }, []);
+  useLayoutEffect(() => {
+    const rowId = lastFocusedRow.current;
+    if (!rowId || document.activeElement !== document.body || document.getElementById(rowId)) return;
+    const optionId = rowId.slice("option-".length);
+    const nowLeading = results.leaders.some((leader) => leader.option.id === optionId);
+    document.getElementById(nowLeading ? LEADER_CARD_ID : "results-heading")?.focus();
+  }, [results]);
 
   useEffect(() => {
     const id = focusTarget.current;
@@ -35,63 +84,99 @@ export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareU
     target?.focus();
   });
 
-  function removePending(id: string) {
-    setPending((current) => current.filter((suggestion) => suggestion.id !== id));
+  function withJustAdded(id: string, added: boolean) {
+    setJustAdded((current) => {
+      const next = new Set(current);
+      if (added) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   }
 
-  function approve(suggestion: SuggestionView) {
-    removePending(suggestion.id);
-    setBallot((current) => [
-      ...current,
-      {
-        id: suggestion.id,
-        label: suggestion.label,
-        source: "suggestion",
-        suggestedBy: suggestion.suggestedBy,
-        votes: 0,
-        backers: null,
-      },
-    ]);
-    setJustAdded((current) => new Set(current).add(suggestion.id));
-    setDeclined(null);
-    setAnnouncement(`${suggestion.label} added to the ballot with 0 votes.`);
+  /**
+   * Shows the decision straight away, then confirms it with the server. The
+   * overlay stays until a fresh view has been fetched, so a poll landing
+   * mid-request can't flash the old state. Returns a failure message, if any.
+   */
+  async function send(suggestion: SuggestionView, action: ModerationAction, to: ModerationOverlay["to"]) {
+    const clear = () => setOverlays((current) => current.filter((item) => item.suggestion.id !== suggestion.id));
+    setOverlays((current) => [...current.filter((item) => item.suggestion.id !== suggestion.id), { suggestion, to }]);
+
+    const result = await moderateSuggestion(view.slug, suggestion.id, action);
+    if (result.ok) {
+      await live.refresh();
+      clear();
+      return null;
+    }
+    clear();
+    if (result.status === 401) {
+      window.location.assign(loginUrlForCurrentPage());
+      return null;
+    }
+    void live.refresh();
+    return failureMessage(result);
+  }
+
+  function fail(message: string, focus: string) {
+    setToast({ kind: "error", message });
+    setModerationMessage(message);
+    focusTarget.current = focus;
+  }
+
+  async function approve(suggestion: SuggestionView) {
+    withJustAdded(suggestion.id, true);
+    setToast({ kind: "decided", decision: "approved", suggestion });
+    setModerationMessage(`${suggestion.label} added to the ballot with 0 votes. Undo is available.`);
     focusTarget.current = packRowId(suggestion.id);
+
+    const failure = await send(suggestion, "approve", "approved");
+    if (failure) {
+      withJustAdded(suggestion.id, false);
+      fail(failure, approveButtonId(suggestion.id));
+    }
   }
 
-  function decline(suggestion: SuggestionView) {
-    setDeclined({ suggestion, index: pending.indexOf(suggestion) });
-    removePending(suggestion.id);
-    setAnnouncement(`Declined ${suggestion.suggestedBy.name}’s suggestion, ${suggestion.label}. Undo is available.`);
+  async function decline(suggestion: SuggestionView) {
+    setToast({ kind: "decided", decision: "declined", suggestion });
+    setModerationMessage(`Declined ${suggestion.suggestedBy.name}’s suggestion, ${suggestion.label}. Undo is available.`);
     focusTarget.current = "undo";
+
+    const failure = await send(suggestion, "decline", "declined");
+    if (failure) fail(failure, approveButtonId(suggestion.id));
   }
 
-  function undoDecline() {
-    if (!declined) return;
-    const { suggestion, index } = declined;
-    setPending((current) => [...current.slice(0, index), suggestion, ...current.slice(index)]);
-    setDeclined(null);
-    setAnnouncement(`${suggestion.label} is back in your pending suggestions.`);
+  async function undo() {
+    if (toast?.kind !== "decided" || undoing) return;
+    const { suggestion } = toast;
+    setUndoing(true);
+    const failure = await send(suggestion, "undo", "pending");
+    setUndoing(false);
+
+    if (failure) return fail(failure, TOAST_DISMISS_ID);
+    withJustAdded(suggestion.id, false);
+    setToast(null);
+    setModerationMessage(`${suggestion.label} is back in your pending suggestions.`);
     focusTarget.current = approveButtonId(suggestion.id);
   }
 
   function dismissToast() {
-    setDeclined(null);
+    setToast(null);
     focusTarget.current = "pending-heading";
   }
 
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <StatusPill />
-        <ClosesChip closesAt={poll.closesAt} />
+        <StatusPill status={view.status} />
+        {open && <ClosesChip closesAt={view.closesAt} />}
       </div>
 
       <h1 className="riso mt-5 font-display text-[clamp(2rem,1.4rem+3.2vw,var(--text-2xl))] leading-(--leading-display) font-extrabold tracking-[-0.02em] text-pretty text-cocoa">
-        {poll.title}
+        {view.title}
       </h1>
 
       <div className="mt-5">
-        <CrewLine voters={poll.voters} />
+        <CrewLine voters={view.voters} />
       </div>
 
       <section aria-labelledby="results-heading" className="mt-10 flex flex-col gap-8">
@@ -100,7 +185,8 @@ export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareU
         </h2>
 
         {results.leaders.length > 0 ? (
-          <LeaderCard results={results} />
+          // Keyed by who's ahead, so a new leader's tally doesn't stamp in the old one's votes.
+          <LeaderCard key={results.leaders.map((leader) => leader.option.id).join("|")} results={results} />
         ) : (
           <div className="rounded-lg border-[2.5px] border-cocoa bg-card p-6 sm:p-7">
             <p className="font-display text-lg font-extrabold text-cocoa">No votes yet, so nobody&rsquo;s leading.</p>
@@ -115,20 +201,15 @@ export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareU
         <p className="font-display text-base font-bold text-cocoa tabular-nums">
           {pluralVotes(results.totalVotes)} in &mdash; <span className="text-tangerine-deep">{raceCall(results)}</span>
         </p>
-        <p className="flex items-center gap-2 text-sm text-cocoa-soft">
-          <span aria-hidden="true" className="relative flex size-4 items-center justify-center rounded-full bg-teal-soft">
-            <span className="size-2 rounded-full bg-teal motion-safe:animate-pulse" />
-          </span>
-          Live &mdash; updates as votes land
-        </p>
+        <LiveStatus status={view.status} connection={live.connection} />
       </div>
 
-      {poll.suggestionsEnabled && (pending.length > 0 || declined) && (
+      {open && view.suggestionsEnabled && (view.pendingSuggestions.length > 0 || toast) && (
         <section aria-labelledby="pending-heading" className="mt-8 flex flex-col gap-6">
           <h2 id="pending-heading" tabIndex={-1} className="sr-only">
             Suggestions waiting on you
           </h2>
-          {pending.map((suggestion) => (
+          {view.pendingSuggestions.map((suggestion) => (
             <SuggestionCard
               key={suggestion.id}
               suggestion={suggestion}
@@ -143,31 +224,23 @@ export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView; shareU
         <ShareDock shareUrl={shareUrl} />
       </div>
 
-      {declined && (
-        <div className="fixed inset-x-4 bottom-4 z-10 mx-auto flex max-w-form flex-wrap items-center gap-3 rounded-lg border-[2.5px] border-cocoa bg-card p-3 pl-5 sm:rounded-full">
-          <p className="min-w-0 flex-1 text-sm text-cocoa">
-            Not this time for <strong className="font-extrabold">&ldquo;{declined.suggestion.label}&rdquo;</strong>
-          </p>
-          <button
-            ref={undoRef}
-            type="button"
-            onClick={undoDecline}
-            className="press min-h-11 rounded-full border-2 border-cocoa bg-cocoa px-5 font-display text-sm font-bold text-cream shadow-press-cocoa"
-          >
-            Undo
-          </button>
-          <button
-            type="button"
-            onClick={dismissToast}
-            className="min-h-11 rounded-full px-4 font-display text-sm font-bold text-cocoa-soft hover:bg-cream-deep hover:text-cocoa"
-          >
-            Dismiss
-          </button>
-        </div>
+      {toast && (
+        <DecisionToast
+          toast={toast.kind === "error" ? toast : { kind: "decided", decision: toast.decision, label: toast.suggestion.label }}
+          busy={undoing}
+          undoRef={undoRef}
+          dismissId={TOAST_DISMISS_ID}
+          onUndo={undo}
+          onDismiss={dismissToast}
+        />
       )}
 
+      {/* One region narrates the race (throttled); one reports moderation outcomes. */}
       <p aria-live="polite" className="sr-only">
-        {announcement}
+        {raceMessage}
+      </p>
+      <p aria-live="polite" className="sr-only">
+        {moderationMessage}
       </p>
     </>
   );

@@ -40,14 +40,14 @@ export function SuggestionCard({ suggestion, onApprove, onDecline }: SuggestionC
           type="button"
           id={approveButtonId(suggestion.id)}
           onClick={onApprove}
-          className="press min-h-11 rounded-full border-2 border-cocoa bg-teal px-6 font-display text-base font-bold text-cream shadow-press-teal hover:bg-teal-deep"
+          className="press min-h-11 rounded-full border-2 border-cocoa bg-teal whitespace-nowrap px-6 font-display text-base font-bold text-cream shadow-press-teal hover:bg-teal-deep"
         >
           Add it
         </button>
         <button
           type="button"
           onClick={onDecline}
-          className="min-h-11 rounded-full px-4 font-display text-base font-bold text-cocoa-soft hover:bg-cream-deep hover:text-cocoa"
+          className="min-h-11 rounded-full px-4 font-display text-base font-bold whitespace-nowrap text-cocoa-soft hover:bg-cream-deep hover:text-cocoa"
         >
           Not this time
         </button>

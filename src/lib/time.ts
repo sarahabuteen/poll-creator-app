@@ -1,8 +1,26 @@
 import { useSyncExternalStore } from "react";
 
-// Captured once per page load: relative copy doesn't need to tick.
-const loadedAt = typeof window === "undefined" ? 0 : Date.now();
-const subscribe = () => () => {};
+// A shared clock that ticks every 30 seconds while something is listening,
+// so "last one 2 min ago" stays true on a page that's left open.
+const TICK_MS = 30_000;
+let now = typeof window === "undefined" ? 0 : Date.now();
+const listeners = new Set<() => void>();
+let timer: ReturnType<typeof setInterval> | undefined;
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  timer ??= setInterval(() => {
+    now = Date.now();
+    listeners.forEach((notify) => notify());
+  }, TICK_MS);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && timer) {
+      clearInterval(timer);
+      timer = undefined;
+    }
+  };
+}
 
 /**
  * The viewer's "now", or null during server render. Times are formatted in
@@ -11,7 +29,7 @@ const subscribe = () => () => {};
 export function useNow(): number | null {
   return useSyncExternalStore(
     subscribe,
-    () => loadedAt,
+    () => now,
     () => null,
   );
 }

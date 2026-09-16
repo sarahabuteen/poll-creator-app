@@ -2,8 +2,9 @@ import "server-only";
 
 import { headers } from "next/headers";
 import type { ApiErrorBody } from "@/domain/errors";
+import type { ApiResult } from "./types";
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiErrorBody["error"] };
+export type { ApiResult };
 
 /**
  * Calls this app's own API from a Server Component, as the browser would:
@@ -23,5 +24,7 @@ export async function serverApi<T>(path: `/api/${string}`, init?: RequestInit): 
   });
 
   const body = await response.json();
-  return response.ok ? { ok: true, data: body as T } : { ok: false, status: response.status, error: (body as ApiErrorBody).error };
+  return response.ok
+    ? { ok: true, status: response.status, data: body as T }
+    : { ok: false, status: response.status, error: (body as ApiErrorBody).error };
 }
