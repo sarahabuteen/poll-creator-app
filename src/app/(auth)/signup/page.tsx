@@ -4,8 +4,13 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { getSignedInCreator } from "@/lib/api/session";
 import { safeNextPath } from "@/lib/auth/redirect";
+import { pageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = { title: "Create an account" };
+export const metadata: Metadata = pageMetadata({
+  title: "Create an account",
+  description: "Make a free Tiebreak account and settle your next group decision. Only the organiser signs up; your crew votes from the link.",
+  path: "/signup",
+});
 
 export default async function SignUpPage({ searchParams }: PageProps<"/signup">) {
   const next = safeNextPath((await searchParams).next);

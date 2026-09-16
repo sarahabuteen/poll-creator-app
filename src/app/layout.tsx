@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Gabarito, Karla } from "next/font/google";
 import { cookies } from "next/headers";
+import { env } from "@/lib/env";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo/site";
 import { parseThemeCookie, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
@@ -15,11 +17,25 @@ const karla = Karla({
 });
 
 export const metadata: Metadata = {
+  // Relative URLs below (canonicals, the Open Graph image) resolve against the deployed site.
+  metadataBase: new URL(env().NEXT_PUBLIC_APP_URL),
   title: {
-    default: "Tiebreak",
-    template: "%s · Tiebreak",
+    default: `${SITE_NAME}: settle it in the group chat`,
+    template: `%s · ${SITE_NAME}`,
   },
-  description: "Settle it in the group chat. Make a poll, share the link, reveal the winner.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  // Times and scores on poll pages aren't phone numbers.
+  formatDetection: { telephone: false },
+  // The image comes from app/opengraph-image.tsx; pages add their own title and description.
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {

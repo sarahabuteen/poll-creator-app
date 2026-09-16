@@ -7,6 +7,7 @@ import { serverApi } from "@/lib/api/server";
 
 export const metadata: Metadata = {
   title: { default: "Guest mode", template: "%s · Guest mode · Tiebreak" },
+  description: "Try Tiebreak without an account: the real organiser screens over sample polls. Nothing is saved.",
   robots: { index: false, follow: false },
 };
 

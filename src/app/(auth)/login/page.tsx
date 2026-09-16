@@ -4,8 +4,13 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { LogInForm } from "@/components/auth/log-in-form";
 import { getSignedInCreator } from "@/lib/api/session";
 import { safeNextPath } from "@/lib/auth/redirect";
+import { pageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata: Metadata = pageMetadata({
+  title: "Log in",
+  description: "Log in to Tiebreak to check on your polls, add your crew’s suggestions and reveal the winner.",
+  path: "/login",
+});
 
 export default async function LogInPage({ searchParams }: PageProps<"/login">) {
   const next = safeNextPath((await searchParams).next);

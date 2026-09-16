@@ -7,6 +7,8 @@ import { VoteExperience } from "@/components/vote/vote-experience";
 import type { PublicPollView } from "@/domain/views";
 import { serverApi } from "@/lib/api/server";
 import { env } from "@/lib/env";
+import { pollDescription } from "@/lib/seo/poll-description";
+import { pageMetadata } from "@/lib/seo/site";
 
 // Shared by generateMetadata and the page, so one request calls the API once.
 // The voter's cookie is forwarded, so a returning voter gets their own ballot back.
@@ -21,7 +23,17 @@ export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Prom
   const poll = await loadPoll((await params).slug);
   if (!poll) return { title: "Poll not found" };
   const suffix = poll.status === "settled" ? "result" : poll.viewerBallot ? "you’re in" : "vote";
-  return { title: `${poll.title} — ${suffix}`, robots: { index: false, follow: false } };
+  return {
+    ...pageMetadata({
+      title: `${poll.title} — ${suffix}`,
+      // The link preview in the group chat: the poll's own title, not "you're in" from whoever pasted it.
+      previewTitle: poll.title,
+      description: pollDescription(poll),
+      path: `/p/${poll.slug}`,
+    }),
+    // Vote links are private to whoever has them; previews yes, search results no.
+    robots: { index: false, follow: false },
+  };
 }
 
 /** The public vote page: no account, no login wall, one link from the group chat. */

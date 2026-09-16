@@ -22,8 +22,9 @@ test.describe("404 pages are designed and never a dead end", () => {
   });
 
   test("a sample poll that doesn't exist, in guest mode", async ({ page }) => {
-    const response = await page.goto("/guest/polls/nope");
-    expect(response?.status()).toBe(404);
+    await page.goto("/guest/polls/nope");
+    // Guest mode streams a loading skeleton first, so the status is 200; crawlers are told not to index.
+    await expect(page.locator('meta[name="robots"][content*="noindex"]').first()).toBeAttached();
     await expect(page.getByRole("heading", { level: 1, name: "That sample poll doesn’t exist" })).toBeVisible();
     await expect(page.getByRole("complementary", { name: "Guest mode" })).toBeVisible();
     await expectAccessible(page, "guest 404");

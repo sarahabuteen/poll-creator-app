@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 /** A placeholder block. Pulses only for viewers who allow motion. */
-export function Bone({ className = "" }: { className?: string }) {
-  return <div className={`rounded-md bg-cream-deep motion-safe:animate-pulse ${className}`} />;
+export function Bone({ className = "", style }: { className?: string; style?: React.CSSProperties }) {
+  return <div className={`rounded-md bg-cream-deep motion-safe:animate-pulse ${className}`} style={style} />;
 }
 
 /** A skeleton card with the brand's ink outline, so the page keeps its shape while loading. */
