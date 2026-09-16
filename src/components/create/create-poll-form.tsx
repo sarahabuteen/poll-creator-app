@@ -2,22 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { closingFocusId, ClosingTimeField, useClosingTime } from "@/components/create/closing-time-field";
 import { FormAlert } from "@/components/forms/form-alert";
 import { TextField } from "@/components/forms/text-field";
 import { CheckIcon, PlusIcon, WarningIcon } from "@/components/icons";
 import { LIMITS } from "@/domain/limits";
 import { createPoll, loginUrlForCurrentPage } from "@/lib/api/client";
-import {
-  defaultClosingPick,
-  describeClosing,
-  fromDateTimeLocal,
-  quickClosingPicks,
-  toDateTimeLocal,
-} from "@/lib/create/closing";
 import { filledOptions, hasErrors, validateCreatePoll, type CreatePollErrors } from "@/lib/create/validation";
-import { useNow } from "@/lib/time";
-
-const CUSTOM = "custom";
 
 function XIcon() {
   return (
@@ -30,14 +21,11 @@ function XIcon() {
 /** Deliberately small: a poll should take under a minute to make. */
 export function CreatePollForm() {
   const router = useRouter();
-  const nowMs = useNow();
   const [title, setTitle] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [voteType, setVoteType] = useState<"single" | "multi">("single");
   const [maxChoices, setMaxChoices] = useState(2);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(true);
-  const [pick, setPick] = useState<string | null>(null);
-  const [custom, setCustom] = useState("");
   const [errors, setErrors] = useState<CreatePollErrors>({});
   const [attempted, setAttempted] = useState(false);
   const [pending, setPending] = useState(false);
@@ -45,11 +33,8 @@ export function CreatePollForm() {
   const focusOption = useRef<number | null>(null);
 
   // Closing picks depend on the creator's clock and timezone, so they only exist in the browser.
-  const now = nowMs === null ? null : new Date(nowMs);
-  const picks = now ? quickClosingPicks(now) : [];
-  const selectedPick = pick ?? (picks.length ? defaultClosingPick(picks) : null);
-  const closesAt =
-    selectedPick === CUSTOM ? fromDateTimeLocal(custom) : (picks.find((item) => item.id === selectedPick)?.closesAt ?? null);
+  const closing = useClosingTime();
+  const { now, closesAt } = closing;
   const filledCount = filledOptions(options).length;
 
   useEffect(() => {
@@ -97,9 +82,7 @@ export function CreatePollForm() {
           : found.maxChoices
             ? "max-choices"
             : found.closesAt
-              ? selectedPick === CUSTOM
-                ? "custom-closing"
-                : `closing-${selectedPick ?? "in-1-hour"}`
+              ? closingFocusId(closing)
               : null;
     if (target) document.getElementById(target)?.focus();
   }
@@ -335,73 +318,7 @@ export function CreatePollForm() {
           </span>
         </label>
 
-        <fieldset className="mt-6" aria-describedby={errors.closesAt ? "closing-error" : "closing-summary"}>
-          <legend className="text-sm font-bold">Voting closes</legend>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {now === null
-              ? // Placeholder pills hold the layout until the local time is known.
-                Array.from({ length: 5 }, (_, index) => <span key={index} aria-hidden="true" className="h-11 w-28 rounded-full bg-cream-deep" />)
-              : [...picks.map((item) => ({ id: item.id, label: item.label })), { id: CUSTOM, label: "Pick a time" }].map((item) => {
-                  const checked = selectedPick === item.id;
-                  return (
-                    <label key={item.id} className="cursor-pointer">
-                      <input
-                        id={`closing-${item.id}`}
-                        type="radio"
-                        name="closing"
-                        value={item.id}
-                        checked={checked}
-                        onChange={() => {
-                          setPick(item.id);
-                          if (item.id === CUSTOM && !custom && now) {
-                            setCustom(toDateTimeLocal(new Date(now.getTime() + 2 * 60 * 60_000)));
-                          }
-                        }}
-                        className="peer sr-only"
-                      />
-                      <span
-                        className={`flex min-h-11 items-center gap-1.5 rounded-full border-2 px-4 text-sm font-bold peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-teal ${
-                          checked ? "border-teal-deep bg-teal-soft text-teal-deep" : "border-cocoa bg-cream hover:bg-cream-deep"
-                        }`}
-                      >
-                        {checked && <CheckIcon size={14} className="motion-safe:animate-check" />}
-                        {item.label}
-                      </span>
-                    </label>
-                  );
-                })}
-          </div>
-
-          {selectedPick === CUSTOM && now && (
-            <div className="mt-3 motion-safe:animate-rise">
-              <label htmlFor="custom-closing" className="text-sm font-bold">
-                Date and time
-              </label>
-              <input
-                id="custom-closing"
-                type="datetime-local"
-                value={custom}
-                min={toDateTimeLocal(new Date(now.getTime() + 5 * 60_000))}
-                onChange={(event) => setCustom(event.target.value)}
-                aria-invalid={errors.closesAt ? true : undefined}
-                className={`mt-1.5 block min-h-12 rounded-md bg-cream px-4 text-base ${errors.closesAt ? "border-[2.5px]" : "border-2"} border-cocoa`}
-              />
-            </div>
-          )}
-
-          {errors.closesAt ? (
-            <p id="closing-error" className="mt-2 flex items-start gap-1.5 text-sm font-bold">
-              <WarningIcon size={16} className="mt-0.5 shrink-0" />
-              {errors.closesAt}
-            </p>
-          ) : (
-            closesAt && (
-              <p id="closing-summary" className="mt-2 text-sm text-cocoa-soft">
-                {describeClosing(closesAt)}
-              </p>
-            )
-          )}
-        </fieldset>
+        <ClosingTimeField closing={closing} error={errors.closesAt} className="mt-6" />
       </section>
 
       <div className="sticky bottom-0 z-10 -mx-4 border-t-2 border-cream-deep bg-cream/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">

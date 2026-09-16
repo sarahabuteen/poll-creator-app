@@ -5,6 +5,7 @@ import { LogoMark } from "@/components/icons";
 import { VoteExperience } from "@/components/vote/vote-experience";
 import type { PublicPollView } from "@/domain/views";
 import { serverApi } from "@/lib/api/server";
+import { env } from "@/lib/env";
 
 // Shared by generateMetadata and the page, so one request calls the API once.
 // The voter's cookie is forwarded, so a returning voter gets their own ballot back.
@@ -35,7 +36,7 @@ export default async function VotePage({ params }: PageProps<"/p/[slug]">) {
         tiebreak
       </header>
       <main id="main" className="mx-auto w-full max-w-content flex-1 px-4 pt-4 pb-16 sm:px-6 sm:pt-8">
-        <VoteExperience poll={poll} />
+        <VoteExperience poll={poll} shareUrl={`${env().NEXT_PUBLIC_APP_URL}/p/${poll.slug}`} />
       </main>
     </>
   );

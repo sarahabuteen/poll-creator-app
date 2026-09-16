@@ -12,14 +12,18 @@ export function castLabel(selectedLabels: readonly string[]): string {
   return selectedLabels.length === 0 ? "Cast my vote" : `Cast my vote for ${listNames(selectedLabels)}`;
 }
 
-/** "Priya, Ada, Kai + 2 more backed it". Named people first; the rest as a count. */
-export function backersLine(backers: readonly Person[], shown = 3): string {
-  if (backers.length === 0) return "Nobody backed it";
-  if (backers.length <= shown) return `${listNames(backers.map((person) => person.name))} backed it`;
-  return `${backers
+/** "Priya, Ada, Kai + 2 more". Named people first; the rest as a count. */
+export function peopleList(people: readonly Person[], shown = 3): string {
+  if (people.length <= shown) return listNames(people.map((person) => person.name));
+  return `${people
     .slice(0, shown)
     .map((person) => person.name)
-    .join(", ")} + ${backers.length - shown} more backed it`;
+    .join(", ")} + ${people.length - shown} more`;
+}
+
+/** "Priya, Ada, Kai + 2 more backed it". */
+export function backersLine(backers: readonly Person[], shown = 3): string {
+  return backers.length === 0 ? "Nobody backed it" : `${peopleList(backers, shown)} backed it`;
 }
 
 export type Outcome =

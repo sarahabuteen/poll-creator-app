@@ -75,6 +75,22 @@ export function createPoll(body: CreatePollBody) {
   return request<{ slug: string }>("/api/creator/polls", { method: "POST", body: JSON.stringify(body) });
 }
 
+/** "End voting": settles an open poll now. */
+export function endVoting(slug: string) {
+  return request<{ status: "settled"; settledAt: string }>(`/api/creator/polls/${encodeURIComponent(slug)}/end`, {
+    method: "POST",
+    body: "{}",
+  });
+}
+
+/** "Reopen voting": always with a new closing time. */
+export function reopenVoting(slug: string, closesAt: Date) {
+  return request<{ status: "open"; closesAt: string }>(`/api/creator/polls/${encodeURIComponent(slug)}/reopen`, {
+    method: "POST",
+    body: JSON.stringify({ closesAt: closesAt.toISOString() }),
+  });
+}
+
 /** Where to send a creator whose session has expired, so they come back here after logging in. */
 export function loginUrlForCurrentPage(): string {
   return `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;

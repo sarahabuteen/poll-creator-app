@@ -7,7 +7,7 @@ import { PlusIcon } from "@/components/icons";
 import { ClosesChip, StatusPill } from "@/components/poll/poll-meta";
 import { Ballot } from "@/components/vote/ballot";
 import { IdentityPicker } from "@/components/vote/identity-picker";
-import { PollResult } from "@/components/vote/poll-result";
+import { ResultReveal } from "@/components/reveal/result-reveal";
 import { SheetDialog } from "@/components/vote/sheet-dialog";
 import { SuggestDialog } from "@/components/vote/suggest-dialog";
 import { usePublicPoll } from "@/components/vote/use-public-poll";
@@ -49,7 +49,7 @@ function remember(slug: string, identity: Identity) {
  * and the result once voting has closed. The three share a URL, so each
  * states plainly what it is, and the state is announced on load.
  */
-export function VoteExperience({ poll: initial }: { poll: PublicPollView }) {
+export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollView; shareUrl: string }) {
   const { view, refresh } = usePublicPoll(initial);
   const [identity, setIdentity] = useState<Identity>(DEFAULT_IDENTITY);
   const [remembered, setRemembered] = useState<Identity | null>(null);
@@ -199,7 +199,20 @@ export function VoteExperience({ poll: initial }: { poll: PublicPollView }) {
       )}
 
       <div className="mt-8">
-        {state === "result" && <PollResult poll={view} />}
+        {state === "result" && (
+          <ResultReveal
+            audience="public"
+            key={view.settledAt}
+            poll={view}
+            shareUrl={shareUrl}
+            viewerOptionIds={view.viewerBallot?.optionIds}
+            tieAction={
+              <p className="rounded-md bg-scrim-on-tangerine px-4 py-3 text-sm font-bold">
+                Nobody wins yet. The organiser can reopen voting to settle it.
+              </p>
+            }
+          />
+        )}
 
         {state === "voted" && (
           <VotedState poll={view} optionIds={votedOptionIds ?? []} identity={justVoted ? identity : remembered} justVoted={justVoted} />

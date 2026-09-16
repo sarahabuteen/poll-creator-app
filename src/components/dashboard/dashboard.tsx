@@ -17,8 +17,7 @@ type DashboardProps = {
 };
 
 const shareUrl = (appUrl: string, slug: string) => `${appUrl}/p/${slug}`;
-// Settled polls get their creator reveal in scope 6; until then the public result tells the story.
-const pollHref = (poll: CreatorPollSummary) => (poll.status === "open" ? `/polls/${poll.slug}` : `/p/${poll.slug}`);
+const pollHref = (poll: CreatorPollSummary) => `/polls/${poll.slug}`;
 
 function WhenLine({ poll }: { poll: CreatorPollSummary }) {
   const now = useNow();

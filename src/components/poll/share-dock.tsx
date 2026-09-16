@@ -3,7 +3,13 @@
 import { CheckIcon, CopyIcon } from "@/components/icons";
 import { useCopy } from "@/components/use-copy";
 
-export function ShareDock({ shareUrl }: { shareUrl: string }) {
+type ShareDockProps = {
+  shareUrl: string;
+  onEndVoting: () => void;
+  ending: boolean;
+};
+
+export function ShareDock({ shareUrl, onEndVoting, ending }: ShareDockProps) {
   const { state: copyState, copy } = useCopy();
   const copyLink = () => copy(shareUrl);
 
@@ -16,12 +22,14 @@ export function ShareDock({ shareUrl }: { shareUrl: string }) {
         </p>
 
         <div className="flex gap-2">
-          {/* Not wired yet: settling and the reveal come next. */}
+          {/* No confirmation: ending isn't final (it can be reopened), and the note below says so. */}
           <button
             type="button"
-            className="press whitespace-nowrap min-h-11 flex-1 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold text-cocoa hover:bg-cream sm:flex-none"
+            onClick={onEndVoting}
+            aria-disabled={ending || undefined}
+            className="press whitespace-nowrap min-h-11 flex-1 rounded-full border-2 border-cocoa bg-card px-5 font-display text-sm font-bold text-cocoa hover:bg-cream aria-disabled:cursor-progress sm:flex-none"
           >
-            End voting
+            {ending ? "Ending…" : "End voting"}
           </button>
           <button
             type="button"

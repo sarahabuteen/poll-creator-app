@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DecisionToast } from "@/components/poll/decision-toast";
 import { LEADER_CARD_ID, LeaderCard } from "@/components/poll/leader-card";
@@ -10,7 +11,7 @@ import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-ca
 import { useLivePoll } from "@/components/poll/use-live-poll";
 import { useRaceAnnouncement } from "@/components/poll/use-race-announcement";
 import type { CreatorPollView, SuggestionView } from "@/domain/views";
-import { loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
+import { endVoting, loginUrlForCurrentPage, moderateSuggestion, type ModerationAction } from "@/lib/api/client";
 import type { ApiResult } from "@/lib/api/types";
 import { applyOverlays, type ModerationOverlay } from "@/lib/live/overlay";
 import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
@@ -40,7 +41,9 @@ function failureMessage(result: Extract<ApiResult<unknown>, { ok: false }>): str
 
 /** The creator's live results: polled from the API, with moderation sent back to it. */
 export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollView; shareUrl: string }) {
+  const router = useRouter();
   const live = useLivePoll(initial);
+  const [ending, setEnding] = useState(false);
   const [overlays, setOverlays] = useState<ModerationOverlay[]>([]);
   const [justAdded, setJustAdded] = useState<ReadonlySet<string>>(new Set());
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -159,6 +162,22 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
     focusTarget.current = approveButtonId(suggestion.id);
   }
 
+  // When voting closes (by deadline or from another tab), the page becomes the reveal.
+  const settled = live.view.status === "settled";
+  useEffect(() => {
+    if (settled) router.refresh();
+  }, [settled, router]);
+
+  async function onEndVoting() {
+    if (ending) return;
+    setEnding(true);
+    const result = await endVoting(view.slug);
+    if (result.ok || result.error.code === "POLL_SETTLED") return router.refresh();
+    setEnding(false);
+    if (result.status === 401) return window.location.assign(loginUrlForCurrentPage());
+    fail("Voting didn\u2019t end. Check your connection and try again.", "results-heading");
+  }
+
   function dismissToast() {
     setToast(null);
     focusTarget.current = "pending-heading";
@@ -221,7 +240,7 @@ export function PollLiveView({ poll: initial, shareUrl }: { poll: CreatorPollVie
       )}
 
       <div className="mt-8">
-        <ShareDock shareUrl={shareUrl} />
+        <ShareDock shareUrl={shareUrl} onEndVoting={onEndVoting} ending={ending} />
       </div>
 
       {toast && (

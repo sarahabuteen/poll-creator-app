@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { PollLiveView } from "@/components/poll/poll-live-view";
+import { CreatorResult } from "@/components/reveal/creator-result";
 import { SiteHeader } from "@/components/site-header";
 import type { CreatorPollView } from "@/domain/views";
 import { serverApi } from "@/lib/api/server";
@@ -21,21 +22,32 @@ const loadPoll = cache(async (slug: string) => {
 
 export async function generateMetadata({ params }: PageProps<"/polls/[id]">): Promise<Metadata> {
   const poll = await loadPoll((await params).id);
-  return { title: poll ? `${poll.title} — live results` : "Poll not found" };
+  if (!poll) return { title: "Poll not found" };
+  return { title: `${poll.title} — ${poll.status === "settled" ? "result" : "live results"}` };
 }
 
 export default async function PollPage({ params }: PageProps<"/polls/[id]">) {
   const { id } = await params;
   const creator = await requireSignedInCreator(`/polls/${id}`);
   const poll = await loadPoll(id);
-  // Settled polls (including ones past their closing time) get the reveal screen in scope 6.
-  if (!poll || poll.status !== "open") notFound();
+  if (!poll) notFound();
+  const shareUrl = `${env().NEXT_PUBLIC_APP_URL}/p/${poll.slug}`;
 
   return (
     <>
       <SiteHeader account={creatorAsPerson(creator)} current="my-polls" />
       <main id="main" className="mx-auto w-full max-w-content px-4 pt-6 pb-28 sm:px-6 sm:pt-8">
-        <PollLiveView poll={poll} shareUrl={`${env().NEXT_PUBLIC_APP_URL}/p/${poll.slug}`} />
+        {poll.status === "settled" ? (
+          <>
+            <h1 className="riso mb-6 font-display text-[clamp(2rem,1.4rem+3.2vw,var(--text-2xl))] leading-(--leading-display) font-extrabold tracking-[-0.02em] text-pretty">
+              {poll.title}
+            </h1>
+            {/* Keyed by settle time so reopening and settling again replays the reveal. */}
+            <CreatorResult key={poll.settledAt} poll={poll} shareUrl={shareUrl} />
+          </>
+        ) : (
+          <PollLiveView key={poll.closesAt} poll={poll} shareUrl={shareUrl} />
+        )}
       </main>
     </>
   );
