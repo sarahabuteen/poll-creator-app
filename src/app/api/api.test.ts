@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import type { Connection } from "@/db/connect";
 import type { ApiErrorBody } from "@/domain/errors";
 import type { PublicPollView } from "@/domain/views";
+import { rateLimits } from "@/db/schema";
 import { seedSampleData } from "@/db/seed";
 import { createTestDb, optionIds } from "@/test/db";
 
@@ -35,7 +36,10 @@ beforeAll(async () => {
   holder.connection = await createTestDb();
 });
 // Route handlers use the real clock, so seed relative to it: open sample polls are genuinely open.
-beforeEach(() => seedSampleData(holder.connection!.db));
+beforeEach(async () => {
+  await holder.connection!.db.delete(rateLimits);
+  await seedSampleData(holder.connection!.db);
+});
 afterAll(() => holder.connection!.close());
 
 describe("GET /api/polls/:slug", () => {
@@ -122,6 +126,26 @@ describe("POST /api/polls/:slug/ballots", () => {
     expect(response.status).toBe(201);
   });
 
+  it("rate-limits one browser hammering the endpoint, with Retry-After", async () => {
+    const ids = await optionIds(holder.connection!, "pizza-night");
+    const body = () => ({ ballotId: crypto.randomUUID(), voter: rosa, optionIds: [ids["Margherita from Lupa"]] });
+    const first = await castBallot(request("/api/polls/pizza-night/ballots", { body: body() }), ctx({ slug: "pizza-night" }));
+    const cookie = `tiebreak_voter=${first.cookies.get("tiebreak_voter")!.value}`;
+
+    const statuses = [];
+    for (let i = 0; i < 10; i++) {
+      const response = await castBallot(request("/api/polls/pizza-night/ballots", { body: body(), cookie }), ctx({ slug: "pizza-night" }));
+      statuses.push(response.status);
+      if (response.status === 429) {
+        expect(Number(response.headers.get("retry-after"))).toBeGreaterThan(0);
+        expect(((await response.json()) as ApiErrorBody).error.code).toBe("RATE_LIMITED");
+      }
+    }
+    // 1 vote, then "already voted" until the per-voter limit (10 in 10 minutes) kicks in.
+    expect(statuses.slice(0, 9).every((status) => status === 409)).toBe(true);
+    expect(statuses[9]).toBe(429);
+  });
+
   it("maps bad input to 400/422 without a stack trace", async () => {
     const malformed = await castBallot(request("/api/polls/pizza-night/ballots", { body: "{nope" }), ctx({ slug: "pizza-night" }));
     expect(malformed.status).toBe(400);
@@ -139,6 +163,17 @@ describe("POST /api/polls/:slug/ballots", () => {
 });
 
 describe("POST /api/polls/:slug/suggestions", () => {
+  it("issues the voter cookie and ignores a voter token sent in the body", async () => {
+    const response = await suggest(
+      request("/api/polls/pizza-night/suggestions", { body: { label: "Stromboli", suggestedBy: rosa, voterToken: "chosen-by-client-123" } }),
+      ctx({ slug: "pizza-night" }),
+    );
+    expect(response.status).toBe(201);
+    const cookie = response.cookies.get("tiebreak_voter");
+    expect(cookie?.httpOnly).toBe(true);
+    expect(cookie?.value).not.toBe("chosen-by-client-123");
+  });
+
   it("creates a pending suggestion that stays off the public ballot", async () => {
     const created = await suggest(
       request("/api/polls/pizza-night/suggestions", { body: { label: "Calzones", suggestedBy: rosa } }),

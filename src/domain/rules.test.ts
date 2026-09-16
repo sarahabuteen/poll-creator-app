@@ -3,6 +3,9 @@ import type { PollRuleCode } from "./errors";
 import { isPollRuleError } from "./errors";
 import {
   assertCanAddOption,
+  assertSuggestionQuota,
+  MAX_PENDING_PER_POLL,
+  MAX_PENDING_PER_VOTER,
   decideSuggestion,
   effectiveState,
   endVoting,
@@ -157,5 +160,16 @@ describe("suggestion moderation", () => {
     expectRule(() => undoDecision(declined, 0, new Date(now.getTime() + UNDO_WINDOW_MS + 1)), "UNDO_UNAVAILABLE");
     expectRule(() => undoDecision(pending, 0, now), "UNDO_UNAVAILABLE");
     expectRule(() => undoDecision(approved, 1, now), "UNDO_UNAVAILABLE");
+  });
+});
+
+describe("assertSuggestionQuota", () => {
+  it("allows suggestions under both caps", () => {
+    expect(() => assertSuggestionQuota({ pendingForVoter: MAX_PENDING_PER_VOTER - 1, pendingForPoll: MAX_PENDING_PER_POLL - 1 })).not.toThrow();
+  });
+
+  it("refuses once a voter or the poll has a full queue", () => {
+    expectRule(() => assertSuggestionQuota({ pendingForVoter: MAX_PENDING_PER_VOTER, pendingForPoll: 0 }), "TOO_MANY_SUGGESTIONS");
+    expectRule(() => assertSuggestionQuota({ pendingForVoter: 0, pendingForPoll: MAX_PENDING_PER_POLL }), "TOO_MANY_SUGGESTIONS");
   });
 });

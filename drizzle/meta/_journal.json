@@ -29,6 +29,13 @@
       "when": 1789556136797,
       "tag": "0003_poll_revision",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789557669614,
+      "tag": "0004_voter_limits",
+      "breakpoints": true
     }
   ]
 }

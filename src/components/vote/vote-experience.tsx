@@ -167,6 +167,8 @@ export function VoteExperience({ poll: initial }: { poll: PublicPollView }) {
         setNotice("That option isn’t on the ballot any more. Pick again.");
         setSelected([]);
         return void refresh();
+      case "RATE_LIMITED":
+        return setCastFailure("That\u2019s a lot of tries in a row. Wait a moment, then lock it in again.");
       case "INVALID_INPUT":
         return setCastFailure("Something in the form isn’t right. Check your name and try again.");
       default:

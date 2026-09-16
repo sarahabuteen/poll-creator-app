@@ -87,6 +87,19 @@ describe("creator view", () => {
     ]);
   });
 
+  it("never exposes who suggested what by voter token", async () => {
+    const { suggestOption } = await import("./commands");
+    await suggestOption(
+      db(),
+      "pizza-night",
+      { label: "Calzones", suggestedBy: { name: "Rosa", avatar: { seed: "Rosa", tint: "cbe2d8" } }, voterToken: "secret-voter-token-123" },
+      NOW,
+    );
+    const creator = await getCreatorPollView(db(), "pizza-night", { creatorId: SAMPLE_CREATOR_ID, now: NOW });
+    const voter = await getPublicPollView(db(), "pizza-night", { now: NOW });
+    expect(JSON.stringify([creator, voter])).not.toContain("secret-voter-token-123");
+  });
+
   it("is invisible to anyone else", async () => {
     expect(await getCreatorPollView(db(), "pizza-night", { creatorId: "someone-else", now: NOW })).toBeNull();
   });

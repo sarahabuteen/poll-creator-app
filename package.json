@@ -16,6 +16,8 @@
     "db:setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
+    "@dicebear/core": "^9.4.3",
+    "@dicebear/micah": "^9.4.3",
     "@electric-sql/pglite": "^0.5.8",
     "better-auth": "^1.7.5",
     "drizzle-orm": "^0.45.2",

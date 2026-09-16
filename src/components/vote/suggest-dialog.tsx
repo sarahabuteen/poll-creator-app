@@ -67,6 +67,11 @@ export function SuggestDialog({ open, slug, identity, onIdentityChange, onClose,
         return setFailure("This poll isn’t taking suggestions any more.");
       case "TOO_MANY_OPTIONS":
         return setFailure("This poll has as many options as it can take.");
+      case "TOO_MANY_SUGGESTIONS":
+        // Written for voters: "You have 3 suggestions waiting already…"
+        return setFailure(result.error.message);
+      case "RATE_LIMITED":
+        return setFailure("That\u2019s a lot of suggestions in a row. Wait a moment, then try again.");
       default:
         return setFailure("That didn’t send. Check your connection and try again.");
     }

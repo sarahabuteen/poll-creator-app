@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { castBallotInput } from "@/domain/inputs";
 import { handle, parseBody, readJson } from "@/server/api/http";
+import { CAST_LIMITS, enforceRateLimits } from "@/server/api/rate-limit";
 import { setVoterCookie, voterTokenFor } from "@/server/api/session";
 import { castBallot } from "@/server/polls/commands";
 
@@ -16,8 +17,10 @@ export const POST = handle(async (request: NextRequest, ctx: RouteContext<"/api/
   const { slug } = await ctx.params;
   const input = parseBody(body, await readJson(request));
   const { token, isNew } = voterTokenFor(request);
+  const db = getDb();
 
-  const result = await castBallot(getDb(), slug, { ...input, voterToken: token });
+  await enforceRateLimits(db, request, { scope: `cast:${slug}`, voterToken: token, limits: CAST_LIMITS });
+  const result = await castBallot(db, slug, { ...input, voterToken: token });
 
   const response = NextResponse.json(
     { ballotId: result.ballotId, optionIds: result.optionIds, castAt: result.castAt.toISOString() },

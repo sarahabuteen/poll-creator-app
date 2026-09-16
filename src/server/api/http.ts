@@ -8,6 +8,7 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: ApiErrorCode,
     message: string,
+    readonly headers: Record<string, string> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -20,6 +21,7 @@ const STATUS_BY_RULE: Record<PollRuleCode, number> = {
   CLOSING_TIME_INVALID: 422,
   DUPLICATE_OPTION: 422,
   TOO_MANY_OPTIONS: 422,
+  TOO_MANY_SUGGESTIONS: 409,
   POLL_NOT_FOUND: 404,
   SUGGESTION_NOT_FOUND: 404,
   POLL_SETTLED: 409,
@@ -36,7 +38,10 @@ export function errorResponse(error: unknown): NextResponse<ApiErrorBody> {
     return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: STATUS_BY_RULE[error.code] });
   }
   if (error instanceof ApiError) {
-    return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status });
+    return NextResponse.json(
+      { error: { code: error.code, message: error.message } },
+      { status: error.status, headers: error.headers },
+    );
   }
   // Never leak internals to a guest: log it, say something plain.
   console.error(error);

@@ -47,7 +47,7 @@ describe("getPollVersion", () => {
 
     const writes: Array<[string, () => Promise<unknown>]> = [
       ["vote", () => castBallot(db(), "pizza-night", { ...voter("Rosa"), optionIds: [ids["Margherita from Lupa"]] }, NOW)],
-      ["suggest", () => suggestOption(db(), "pizza-night", { label: "Calzones", suggestedBy: sam }, NOW)],
+      ["suggest", () => suggestOption(db(), "pizza-night", { label: "Calzones", suggestedBy: sam, voterToken: "test-token-sam-suggester" }, NOW)],
       ["decline", () => declineSuggestion(db(), salads, NOW)],
       ["undo", () => undoModeration(db(), salads, NOW)],
       ["approve", () => approveSuggestion(db(), salads, NOW)],

@@ -10,6 +10,7 @@ export type PollRuleCode =
   | "SUGGESTIONS_DISABLED"
   | "DUPLICATE_OPTION"
   | "TOO_MANY_OPTIONS"
+  | "TOO_MANY_SUGGESTIONS"
   | "SUGGESTION_NOT_FOUND"
   | "SUGGESTION_ALREADY_DECIDED"
   | "UNDO_UNAVAILABLE";
@@ -33,7 +34,7 @@ export function isPollRuleError(error: unknown, code?: PollRuleCode): error is P
 }
 
 /** Every error code an API response can carry. */
-export type ApiErrorCode = PollRuleCode | "UNAUTHENTICATED" | "INTERNAL";
+export type ApiErrorCode = PollRuleCode | "UNAUTHENTICATED" | "RATE_LIMITED" | "INTERNAL";
 
 /** The JSON body of every non-2xx API response. */
 export type ApiErrorBody = { error: { code: ApiErrorCode; message: string } };

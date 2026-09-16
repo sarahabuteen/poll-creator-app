@@ -174,7 +174,7 @@ describe("suggestions", () => {
   const sam = { name: "Sam", avatar: { seed: "Sam", tint: "f6e0a4" as const } };
 
   it("adds a pending suggestion that isn't on the ballot yet", async () => {
-    const { id } = await suggestOption(db(), "pizza-night", { label: "Calzones", suggestedBy: sam }, NOW);
+    const { id } = await suggestOption(db(), "pizza-night", { label: "Calzones", suggestedBy: sam, voterToken: "test-token-sam-suggester" }, NOW);
     const view = await getCreatorPollView(db(), "pizza-night", { creatorId: SAMPLE_CREATOR_ID, now: NOW });
 
     expect(view!.pendingSuggestions.map((s) => s.id)).toContain(id);
@@ -188,9 +188,9 @@ describe("suggestions", () => {
       { title: "Dates only", options: ["Fri", "Sat"], closesAt: minutes(60), voteType: "single", suggestionsEnabled: false },
       NOW,
     );
-    await expectRule(suggestOption(db(), fixed, { label: "Sun", suggestedBy: sam }, NOW), "SUGGESTIONS_DISABLED");
-    await expectRule(suggestOption(db(), "meal-out", { label: "Sunday", suggestedBy: sam }, NOW), "POLL_SETTLED");
-    await expectRule(suggestOption(db(), "pizza-night", { label: "just ORDER salads", suggestedBy: sam }, NOW), "DUPLICATE_OPTION");
+    await expectRule(suggestOption(db(), fixed, { label: "Sun", suggestedBy: sam, voterToken: "test-token-sam-suggester" }, NOW), "SUGGESTIONS_DISABLED");
+    await expectRule(suggestOption(db(), "meal-out", { label: "Sunday", suggestedBy: sam, voterToken: "test-token-sam-suggester" }, NOW), "POLL_SETTLED");
+    await expectRule(suggestOption(db(), "pizza-night", { label: "just ORDER salads", suggestedBy: sam, voterToken: "test-token-sam-suggester" }, NOW), "DUPLICATE_OPTION");
   });
 
   it("approves a suggestion onto the ballot with 0 votes", async () => {
@@ -241,6 +241,32 @@ describe("suggestions", () => {
     const ids = await optionIds(connection, "pizza-night");
     await endVoting(db(), owner, NOW);
     await expectRule(approveSuggestion(db(), { ...owner, optionId: ids["Just order salads"] }, minutes(1)), "POLL_SETTLED");
+  });
+});
+
+describe("suggestion caps", () => {
+  const person = (name: string) => ({ name, avatar: { seed: name, tint: "cbe2d8" as const } });
+  const suggest = (label: string, token: string) =>
+    suggestOption(db(), "pizza-night", { label, suggestedBy: person("Kai"), voterToken: token }, NOW);
+
+  it("lets one voter have 3 suggestions waiting, then asks them to wait", async () => {
+    // Pizza night starts with Sam's pending suggestion from a different (null) token.
+    for (const label of ["A", "B", "C"]) await suggest(label, "token-kai-0000000000");
+    await expectRule(suggest("D", "token-kai-0000000000"), "TOO_MANY_SUGGESTIONS");
+    await expect(suggest("D", "token-ada-0000000000")).resolves.toMatchObject({ id: expect.any(String) });
+  });
+
+  it("frees a voter's slot once the organiser decides", async () => {
+    const ids = [];
+    for (const label of ["A", "B", "C"]) ids.push((await suggest(label, "token-kai-0000000000")).id);
+    await declineSuggestion(db(), { ...owner, optionId: ids[0] }, NOW);
+    await expect(suggest("D", "token-kai-0000000000")).resolves.toBeTruthy();
+  });
+
+  it("caps the whole poll's queue at 10 pending", async () => {
+    // Sam's seeded suggestion is already pending, so 9 more fill the queue.
+    for (let i = 0; i < 9; i++) await suggest(`Idea ${i}`, `token-voter-${i}-000000000`);
+    await expectRule(suggest("One too many", "token-latecomer-00000"), "TOO_MANY_SUGGESTIONS");
   });
 });
 

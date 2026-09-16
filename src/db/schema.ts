@@ -70,12 +70,15 @@ export const options = pgTable(
     suggestedByName: text("suggested_by_name"),
     suggestedByAvatarSeed: text("suggested_by_avatar_seed"),
     suggestedByAvatarTint: text("suggested_by_avatar_tint"),
+    /** The suggesting browser's voter token, so pending suggestions can be capped per voter. Never sent to clients. */
+    suggestedByToken: text("suggested_by_token"),
     /** When the creator approved or declined it; bounds the undo window. */
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
     index("options_poll_idx").on(table.pollId),
+    index("options_pending_by_token_idx").on(table.pollId, table.suggestedByToken),
     check(
       "options_suggestion_fields_check",
       sql`(${table.source} = 'creator' AND ${table.suggestionStatus} IS NULL)
@@ -117,4 +120,19 @@ export const votes = pgTable(
       .references(() => options.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.ballotId, table.optionId] }), index("votes_option_idx").on(table.optionId)],
+);
+
+/**
+ * Fixed-window counters for the public write endpoints. Kept in Postgres
+ * because serverless instances don't share memory. Keys never hold a raw IP
+ * address, only a salted hash.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").primaryKey(),
+    windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+    count: integer("count").notNull(),
+  },
+  (table) => [index("rate_limits_window_idx").on(table.windowStartedAt)],
 );

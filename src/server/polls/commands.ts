@@ -13,6 +13,7 @@ import {
 } from "@/domain/inputs";
 import {
   assertCanAddOption,
+  assertSuggestionQuota,
   assertOpen,
   assertValidClosingTime,
   decideSuggestion,
@@ -171,10 +172,21 @@ export async function suggestOption(db: Db, slug: string, rawInput: SuggestOptio
     }
 
     const existing = await tx
-      .select({ id: options.id, label: options.label, source: options.source, suggestionStatus: options.suggestionStatus })
+      .select({
+        id: options.id,
+        label: options.label,
+        source: options.source,
+        suggestionStatus: options.suggestionStatus,
+        suggestedByToken: options.suggestedByToken,
+      })
       .from(options)
       .where(eq(options.pollId, poll.id));
     assertCanAddOption(existing, input.label);
+    const pending = existing.filter((option) => option.suggestionStatus === "pending");
+    assertSuggestionQuota({
+      pendingForVoter: pending.filter((option) => option.suggestedByToken === input.voterToken).length,
+      pendingForPoll: pending.length,
+    });
 
     const [{ lastPosition }] = await tx
       .select({ lastPosition: max(options.position) })
@@ -192,6 +204,7 @@ export async function suggestOption(db: Db, slug: string, rawInput: SuggestOptio
         suggestedByName: input.suggestedBy.name,
         suggestedByAvatarSeed: input.suggestedBy.avatar.seed,
         suggestedByAvatarTint: input.suggestedBy.avatar.tint,
+        suggestedByToken: input.voterToken,
         createdAt: now,
       })
       .returning({ id: options.id });

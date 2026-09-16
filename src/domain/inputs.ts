@@ -54,6 +54,8 @@ export const castBallotInput = z.object({
 export const suggestOptionInput = z.object({
   label: trimmed(LIMITS.optionLength),
   suggestedBy: personInput,
+  /** Identifies the suggesting browser for the per-voter cap; supplied by the API from the cookie. */
+  voterToken: voterTokenInput,
 });
 
 export type CreatePollInput = z.input<typeof createPollInput>;

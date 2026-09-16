@@ -16,6 +16,10 @@ import { LIMITS } from "./inputs";
 export const MIN_VOTING_WINDOW_MS = 5 * 60_000;
 /** Polls are short-lived group decisions, and settled polls retire after 30 days. */
 export const MAX_VOTING_WINDOW_MS = 30 * 24 * 60 * 60_000;
+/** Pending suggestions one browser can have waiting on a poll at once. */
+export const MAX_PENDING_PER_VOTER = 3;
+/** Pending suggestions a poll can hold, so the organiser's queue can't be buried. */
+export const MAX_PENDING_PER_POLL = 10;
 /** How long a moderation decision can be taken back from the undo toast. */
 export const UNDO_WINDOW_MS = 10 * 60_000;
 
@@ -137,6 +141,23 @@ export function assertCanAddOption(
   const wanted = normalizeLabel(label);
   if (live.some((option) => normalizeLabel(option.label) === wanted)) {
     throw new PollRuleError("DUPLICATE_OPTION", "That option is already on this poll.");
+  }
+}
+
+/**
+ * Suggestions wait on the organiser, so cap how many can pile up: a few per
+ * voter, and a queue the organiser can realistically get through. Decided
+ * suggestions don't count, so an active poll never locks anyone out for good.
+ */
+export function assertSuggestionQuota({ pendingForVoter, pendingForPoll }: { pendingForVoter: number; pendingForPoll: number }): void {
+  if (pendingForVoter >= MAX_PENDING_PER_VOTER) {
+    throw new PollRuleError(
+      "TOO_MANY_SUGGESTIONS",
+      `You have ${MAX_PENDING_PER_VOTER} suggestions waiting already. Give the organiser a chance to decide.`,
+    );
+  }
+  if (pendingForPoll >= MAX_PENDING_PER_POLL) {
+    throw new PollRuleError("TOO_MANY_SUGGESTIONS", "The organiser has a full queue of suggestions to get through first.");
   }
 }
 
