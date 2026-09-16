@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
 import raw from "../../data/sample-polls.json";
-import { deriveResults, raceCall } from "./results";
-import type { SampleData } from "./types";
+import type { SampleData, SamplePoll } from "@/db/sample-types";
+import { deriveResults, raceCall, type ResultOption } from "./results";
 
-const samples = (raw as SampleData).polls;
-const sample = (id: string) => samples.find((poll) => poll.id === id)!;
+/** Sample polls as the ballot-with-counts the server sends (pending suggestions left off). */
+function ballotOf(poll: SamplePoll): ResultOption[] {
+  return poll.options
+    .filter((option) => option.source === "creator" || option.suggestionStatus === "approved")
+    .map((option) => ({
+      id: option.id,
+      label: option.label,
+      suggestedBy: option.suggestedBy ?? null,
+      votes: poll.votes.filter((vote) => vote.optionId === option.id).length,
+    }));
+}
+
+const sample = (id: string) => ballotOf((raw as SampleData).polls.find((poll) => poll.id === id)!);
 
 describe("deriveResults", () => {
   it("matches the preview for pizza night", () => {
@@ -19,11 +30,6 @@ describe("deriveResults", () => {
     ]);
     expect(results.margin).toBe(2);
     expect(raceCall(results)).toBe("still anyone’s game");
-  });
-
-  it("keeps pending suggestions off the ballot", () => {
-    const { leaders, pack } = deriveResults(sample("pizza-night"));
-    expect([...leaders, ...pack].some((r) => r.option.id === "salads")).toBe(false);
   });
 
   it("flags ties in the pack", () => {
@@ -42,9 +48,8 @@ describe("deriveResults", () => {
   });
 
   it("states a tie at the top in words instead of picking a winner", () => {
-    const poll = sample("friday-film-club");
-    // Drop Jaws's 3 votes, leaving Heat and Everything Everywhere at 2 each.
-    const twoTwo = { ...poll, votes: poll.votes.filter((vote) => vote.optionId !== "jaws") };
+    // Without Jaws's 3 votes, Heat and Everything Everywhere are level at 2 each.
+    const twoTwo = sample("friday-film-club").filter((option) => option.id !== "jaws");
     const results = deriveResults(twoTwo);
 
     expect(results.leaders).toHaveLength(2);

@@ -3,7 +3,7 @@
 import { Avatar } from "@/components/avatar";
 import { ClockIcon } from "@/components/icons";
 import { formatClosing, timeAgo, useNow } from "@/lib/time";
-import type { Vote } from "@/lib/types";
+import type { VoterView } from "@/domain/views";
 
 export function StatusPill() {
   return (
@@ -37,28 +37,27 @@ export function ClosesChip({ closesAt }: { closesAt: string }) {
 
 const CREW_FACES = 4;
 
-export function CrewLine({ votes }: { votes: Vote[] }) {
+/** `voters` arrive most recent first and never say who voted for what. */
+export function CrewLine({ voters }: { voters: VoterView[] }) {
   const now = useNow();
 
-  if (votes.length === 0) {
+  if (voters.length === 0) {
     return <p className="text-sm text-cocoa-soft">Nobody&rsquo;s voted yet. Share the link to get your crew in.</p>;
   }
 
-  const recent = [...votes].sort((a, b) => b.castAt.localeCompare(a.castAt));
-  const voters = new Set(votes.map((vote) => vote.voterToken)).size;
 
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <ul role="list" aria-hidden="true" className="flex">
-        {recent.slice(0, CREW_FACES).map((vote, index) => (
-          <li key={vote.voterToken} className="-ml-2.5 first:ml-0" style={{ zIndex: CREW_FACES - index }}>
-            <Avatar person={vote.voter} size={34} />
+        {voters.slice(0, CREW_FACES).map((voter, index) => (
+          <li key={`${voter.castAt}-${index}`} className="-ml-2.5 first:ml-0" style={{ zIndex: CREW_FACES - index }}>
+            <Avatar person={voter} size={34} />
           </li>
         ))}
       </ul>
       <p className="text-sm text-cocoa-soft">
-        <strong className="font-extrabold text-cocoa tabular-nums">{voters} of your crew</strong> voted
-        {now !== null && <> &middot; last one {timeAgo(Date.parse(recent[0].castAt), now)}</>}
+        <strong className="font-extrabold text-cocoa tabular-nums">{voters.length} of your crew</strong> voted
+        {now !== null && <> &middot; last one {timeAgo(Date.parse(voters[0].castAt), now)}</>}
       </p>
     </div>
   );

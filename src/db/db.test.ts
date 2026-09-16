@@ -2,7 +2,6 @@ import { count, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { connect, type Connection } from "./connect";
 import { runMigrations } from "./migrate";
-import { getPollBySlug } from "./queries";
 import { ballots, options, polls, votes } from "./schema";
 import { SAMPLE_NOW, seedSampleData } from "./seed";
 
@@ -19,28 +18,9 @@ beforeAll(async () => {
 afterAll(() => connection.close());
 
 describe("seeded sample data", () => {
-  it("loads pizza night in the shape the UI renders", async () => {
-    const poll = await getPollBySlug(connection.db, "pizza-night");
-
-    expect(poll).not.toBeNull();
-    expect(poll!.votes).toHaveLength(11);
-    expect(poll!.options.map((option) => option.label)).toEqual([
-      "Detroit-style from Emmy's",
-      "Pepperoni from Slice House",
-      "Veggie supreme from Nino's",
-      "Margherita from Lupa",
-      "Just order salads",
-    ]);
-    expect(poll!.options.at(-1)).toMatchObject({
-      source: "suggestion",
-      suggestionStatus: "pending",
-      suggestedBy: { name: "Sam", avatar: { seed: "Sam", tint: "f6e0a4" } },
-    });
-  });
-
   it("shifts timestamps so the sample's distance from 'now' is kept", async () => {
-    const poll = await getPollBySlug(connection.db, "pizza-night");
-    const closesIn = Date.parse(poll!.closesAt) - NOW;
+    const [poll] = await connection.db.select().from(polls).where(eq(polls.slug, "pizza-night"));
+    const closesIn = poll.closesAt.getTime() - NOW;
     expect(closesIn).toBe(Date.parse("2026-09-17T18:00:00Z") - SAMPLE_NOW);
   });
 
@@ -57,9 +37,6 @@ describe("seeded sample data", () => {
     expect(value).toBe(5);
   });
 
-  it("returns null for an unknown slug", async () => {
-    expect(await getPollBySlug(connection.db, "nope")).toBeNull();
-  });
 });
 
 describe("schema constraints", () => {

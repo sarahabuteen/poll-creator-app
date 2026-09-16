@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import raw from "../../data/sample-polls.json";
-import type { SampleData } from "@/lib/types";
+import type { SampleData } from "./sample-types";
 import type { Db } from "./connect";
 import { ballots, options, polls, votes } from "./schema";
 
@@ -59,6 +59,8 @@ export async function seedSampleData(db: Db, now = Date.now()) {
             suggestedByName: option.suggestedBy?.name ?? null,
             suggestedByAvatarSeed: option.suggestedBy?.avatar.seed ?? null,
             suggestedByAvatarTint: option.suggestedBy?.avatar.tint ?? null,
+            // Sample decisions are long past, so they can't be undone.
+            decidedAt: option.suggestionStatus && option.suggestionStatus !== "pending" ? shift(poll.createdAt) : null,
             createdAt: shift(poll.createdAt),
           })
           .returning({ id: options.id });

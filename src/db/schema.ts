@@ -60,6 +60,8 @@ export const options = pgTable(
     suggestedByName: text("suggested_by_name"),
     suggestedByAvatarSeed: text("suggested_by_avatar_seed"),
     suggestedByAvatarTint: text("suggested_by_avatar_tint"),
+    /** When the creator approved or declined it; bounds the undo window. */
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [

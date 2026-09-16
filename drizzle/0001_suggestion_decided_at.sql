@@ -1,0 +1,1 @@
+ALTER TABLE "options" ADD COLUMN "decided_at" timestamp with time zone;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { LogoMark, PlusIcon } from "@/components/icons";
-import type { Person } from "@/lib/types";
+import type { Person } from "@/domain/views";
 
 type SiteHeaderProps = {
   account: Person;

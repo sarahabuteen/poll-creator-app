@@ -1,33 +1,23 @@
-export type AvatarTint = "f8c9b9" | "cbe2d8" | "f6e0a4" | "e3d2f2";
+/** The shape of data/sample-polls.json. App code uses the views in `@/domain/views`. */
 
-export type Avatar = {
-  seed: string;
-  tint: AvatarTint;
-};
+import type { Person } from "@/domain/views";
 
-export type Person = {
-  name: string;
-  avatar: Avatar;
-};
-
-export type SuggestionStatus = "pending" | "approved" | "declined";
-
-export type PollOption = {
+export type SamplePollOption = {
   id: string;
   label: string;
   source: "creator" | "suggestion";
-  suggestionStatus?: SuggestionStatus;
+  suggestionStatus?: "pending" | "approved" | "declined";
   suggestedBy?: Person;
 };
 
-export type Vote = {
+export type SampleVote = {
   optionId: string;
   voter: Person;
   voterToken: string;
   castAt: string;
 };
 
-export type Poll = {
+export type SamplePoll = {
   id: string;
   title: string;
   type: "single" | "multi";
@@ -37,11 +27,11 @@ export type Poll = {
   createdAt: string;
   closesAt: string;
   settledAt: string | null;
-  options: PollOption[];
-  votes: Vote[];
+  options: SamplePollOption[];
+  votes: SampleVote[];
 };
 
 export type SampleData = {
   creator: Person;
-  polls: Poll[];
+  polls: SamplePoll[];
 };

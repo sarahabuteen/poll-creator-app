@@ -1,8 +1,8 @@
 import { Avatar } from "@/components/avatar";
-import type { PollOption } from "@/lib/types";
+import type { SuggestionView } from "@/domain/views";
 
 type SuggestionCardProps = {
-  suggestion: PollOption & { suggestedBy: NonNullable<PollOption["suggestedBy"]> };
+  suggestion: SuggestionView;
   onApprove: () => void;
   onDecline: () => void;
 };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { avatarUrl } from "@/lib/avatar";
-import type { Person } from "@/lib/types";
+import type { Person } from "@/domain/views";
 
 type AvatarProps = {
   person: Person;

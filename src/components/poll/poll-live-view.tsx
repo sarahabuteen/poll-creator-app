@@ -6,13 +6,17 @@ import { packRowId, PackList } from "@/components/poll/pack-list";
 import { ClosesChip, CrewLine, StatusPill } from "@/components/poll/poll-meta";
 import { ShareDock } from "@/components/poll/share-dock";
 import { approveButtonId, SuggestionCard } from "@/components/poll/suggestion-card";
-import { deriveResults, pendingSuggestions, pluralVotes, raceCall } from "@/lib/results";
-import type { Poll, PollOption, SuggestionStatus } from "@/lib/types";
+import type { BallotOptionView, CreatorPollView, PublicPollView, SuggestionView } from "@/domain/views";
+import { deriveResults, pluralVotes, raceCall } from "@/lib/results";
 
-type Declined = { option: PollOption };
+/** A declined suggestion and where it sat in the pending list, so undo can put it back. */
+type Declined = { suggestion: SuggestionView; index: number };
 
-export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shareUrl: string }) {
-  const [options, setOptions] = useState(initialPoll.options);
+// Moderation here only updates local state; scope 3 wires it to the server commands.
+// A public view (no creator access) renders the same results without moderation.
+export function PollLiveView({ poll, shareUrl }: { poll: CreatorPollView | PublicPollView; shareUrl: string }) {
+  const [ballot, setBallot] = useState<BallotOptionView[]>(poll.options);
+  const [pending, setPending] = useState<SuggestionView[]>(poll.audience === "creator" ? poll.pendingSuggestions : []);
   const [justAdded, setJustAdded] = useState<ReadonlySet<string>>(new Set());
   const [declined, setDeclined] = useState<Declined | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -21,9 +25,7 @@ export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shar
   const focusTarget = useRef<string | null>(null);
   const undoRef = useRef<HTMLButtonElement>(null);
 
-  const poll = useMemo(() => ({ ...initialPoll, options }), [initialPoll, options]);
-  const results = useMemo(() => deriveResults(poll), [poll]);
-  const pending = pendingSuggestions(poll);
+  const results = useMemo(() => deriveResults(ballot), [ballot]);
 
   useEffect(() => {
     const id = focusTarget.current;
@@ -34,34 +36,43 @@ export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shar
     target?.focus();
   });
 
-  function setStatus(optionId: string, status: SuggestionStatus) {
-    setOptions((current) =>
-      current.map((option) => (option.id === optionId ? { ...option, suggestionStatus: status } : option)),
-    );
+  function removePending(id: string) {
+    setPending((current) => current.filter((suggestion) => suggestion.id !== id));
   }
 
-  function approve(option: PollOption) {
-    setStatus(option.id, "approved");
-    setJustAdded((current) => new Set(current).add(option.id));
+  function approve(suggestion: SuggestionView) {
+    removePending(suggestion.id);
+    setBallot((current) => [
+      ...current,
+      {
+        id: suggestion.id,
+        label: suggestion.label,
+        source: "suggestion",
+        suggestedBy: suggestion.suggestedBy,
+        votes: 0,
+        backers: null,
+      },
+    ]);
+    setJustAdded((current) => new Set(current).add(suggestion.id));
     setDeclined(null);
-    setAnnouncement(`${option.label} added to the ballot with 0 votes.`);
-    focusTarget.current = packRowId(option.id);
+    setAnnouncement(`${suggestion.label} added to the ballot with 0 votes.`);
+    focusTarget.current = packRowId(suggestion.id);
   }
 
-  function decline(option: PollOption) {
-    setStatus(option.id, "declined");
-    setDeclined({ option });
-    setAnnouncement(`Declined ${option.suggestedBy?.name}’s suggestion, ${option.label}. Undo is available.`);
+  function decline(suggestion: SuggestionView) {
+    setDeclined({ suggestion, index: pending.indexOf(suggestion) });
+    removePending(suggestion.id);
+    setAnnouncement(`Declined ${suggestion.suggestedBy.name}’s suggestion, ${suggestion.label}. Undo is available.`);
     focusTarget.current = "undo";
   }
 
   function undoDecline() {
     if (!declined) return;
-    const { option } = declined;
-    setStatus(option.id, "pending");
+    const { suggestion, index } = declined;
+    setPending((current) => [...current.slice(0, index), suggestion, ...current.slice(index)]);
     setDeclined(null);
-    setAnnouncement(`${option.label} is back in your pending suggestions.`);
-    focusTarget.current = approveButtonId(option.id);
+    setAnnouncement(`${suggestion.label} is back in your pending suggestions.`);
+    focusTarget.current = approveButtonId(suggestion.id);
   }
 
   function dismissToast() {
@@ -81,7 +92,7 @@ export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shar
       </h1>
 
       <div className="mt-5">
-        <CrewLine votes={poll.votes} />
+        <CrewLine voters={poll.voters} />
       </div>
 
       <section aria-labelledby="results-heading" className="mt-10 flex flex-col gap-8">
@@ -118,16 +129,14 @@ export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shar
           <h2 id="pending-heading" tabIndex={-1} className="sr-only">
             Suggestions waiting on you
           </h2>
-          {pending.map((option) =>
-            option.suggestedBy ? (
-              <SuggestionCard
-                key={option.id}
-                suggestion={{ ...option, suggestedBy: option.suggestedBy }}
-                onApprove={() => approve(option)}
-                onDecline={() => decline(option)}
-              />
-            ) : null,
-          )}
+          {pending.map((suggestion) => (
+            <SuggestionCard
+              key={suggestion.id}
+              suggestion={suggestion}
+              onApprove={() => approve(suggestion)}
+              onDecline={() => decline(suggestion)}
+            />
+          ))}
         </section>
       )}
 
@@ -138,7 +147,7 @@ export function PollLiveView({ poll: initialPoll, shareUrl }: { poll: Poll; shar
       {declined && (
         <div className="fixed inset-x-4 bottom-4 z-10 mx-auto flex max-w-form flex-wrap items-center gap-3 rounded-lg border-[2.5px] border-cocoa bg-card p-3 pl-5 sm:rounded-full">
           <p className="min-w-0 flex-1 text-sm text-cocoa">
-            Not this time for <strong className="font-extrabold">&ldquo;{declined.option.label}&rdquo;</strong>
+            Not this time for <strong className="font-extrabold">&ldquo;{declined.suggestion.label}&rdquo;</strong>
           </p>
           <button
             ref={undoRef}

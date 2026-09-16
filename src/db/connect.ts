@@ -19,7 +19,7 @@ export function connect({ DATABASE_URL, PGLITE_DATA_DIR }: Pick<Env, "DATABASE_U
   if (DATABASE_URL) {
     // Neon's pooled connection string runs through PgBouncer, which doesn't
     // support prepared statements.
-    const client = postgres(DATABASE_URL, { prepare: false });
+    const client = postgres(DATABASE_URL, { prepare: false, onnotice: () => {} });
     return {
       db: drizzlePostgres(client, { schema }) as unknown as Db,
       driver: "postgres",

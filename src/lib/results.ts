@@ -1,10 +1,12 @@
-import type { Poll, PollOption } from "./types";
+import type { BallotOptionView } from "@/domain/views";
+
+export type ResultOption = Pick<BallotOptionView, "id" | "label" | "suggestedBy" | "votes">;
 
 /** Past this many votes, one tick per voter stops reading as a scoreboard. */
 export const TALLY_MAX_VOTES = 20;
 
 export type OptionResult = {
-  option: PollOption;
+  option: ResultOption;
   votes: number;
   /** Share of all votes, rounded to a whole number: no false precision at small n. */
   percent: number;
@@ -24,32 +26,14 @@ export type PollResults = {
   margin: number;
 };
 
-export function isOnBallot(option: PollOption): boolean {
-  return option.source === "creator" || option.suggestionStatus === "approved";
-}
-
-export function pendingSuggestions(poll: Poll): PollOption[] {
-  return poll.options.filter(
-    (option) => option.source === "suggestion" && option.suggestionStatus === "pending",
-  );
-}
-
-/** Counts are always derived from the vote rows, never stored. */
-export function deriveResults(poll: Poll): PollResults {
-  const counts = new Map<string, number>();
-  for (const vote of poll.votes) {
-    counts.set(vote.optionId, (counts.get(vote.optionId) ?? 0) + 1);
-  }
-
-  const totalVotes = poll.votes.length;
+/** Ranks ballot options by their server-counted votes. */
+export function deriveResults(ballot: ResultOption[]): PollResults {
+  const totalVotes = ballot.reduce((sum, option) => sum + option.votes, 0);
   // Array.prototype.sort is stable, so equal counts keep ballot order.
-  const ranked = poll.options
-    .filter(isOnBallot)
-    .map((option) => ({ option, votes: counts.get(option.id) ?? 0 }))
-    .sort((a, b) => b.votes - a.votes);
+  const ranked = ballot.map((option) => ({ option, votes: option.votes })).sort((a, b) => b.votes - a.votes);
 
   const topVotes = ranked[0]?.votes ?? 0;
-  const toResult = (entry: { option: PollOption; votes: number }): OptionResult => ({
+  const toResult = (entry: { option: ResultOption; votes: number }): OptionResult => ({
     ...entry,
     percent: totalVotes === 0 ? 0 : Math.round((entry.votes / totalVotes) * 100),
     relativeWidth: topVotes === 0 ? 0 : (entry.votes / topVotes) * 100,

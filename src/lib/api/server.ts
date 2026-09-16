@@ -1,0 +1,27 @@
+import "server-only";
+
+import { headers } from "next/headers";
+import type { ApiErrorBody } from "@/domain/errors";
+
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; status: number; error: ApiErrorBody["error"] };
+
+/**
+ * Calls this app's own API from a Server Component, as the browser would:
+ * same origin, forwarding the visitor's cookies (voter token, and the auth
+ * session from scope 2). Pages never read the database directly.
+ */
+export async function serverApi<T>(path: `/api/${string}`, init?: RequestInit): Promise<ApiResult<T>> {
+  const incoming = await headers();
+  const host = incoming.get("x-forwarded-host") ?? incoming.get("host");
+  const protocol = incoming.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  const cookie = incoming.get("cookie");
+
+  const response = await fetch(`${protocol}://${host}${path}`, {
+    ...init,
+    cache: "no-store",
+    headers: { accept: "application/json", ...(cookie ? { cookie } : {}), ...init?.headers },
+  });
+
+  const body = await response.json();
+  return response.ok ? { ok: true, data: body as T } : { ok: false, status: response.status, error: (body as ApiErrorBody).error };
+}
