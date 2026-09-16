@@ -17,10 +17,14 @@ const { POST: suggest } = await import("./polls/[slug]/suggestions/route");
 
 const ctx = <P extends Record<string, string>>(params: P) => ({ params: Promise.resolve(params) });
 
-function request(path: string, { body, cookie }: { body?: unknown; cookie?: string } = {}) {
+function request(path: string, { body, cookie, ifNoneMatch }: { body?: unknown; cookie?: string; ifNoneMatch?: string } = {}) {
   return new NextRequest(`http://localhost:3000${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "content-type": "application/json", ...(cookie ? { cookie } : {}) },
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+      ...(ifNoneMatch ? { "if-none-match": ifNoneMatch } : {}),
+    },
     body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -35,15 +39,37 @@ beforeEach(() => seedSampleData(holder.connection!.db));
 afterAll(() => holder.connection!.close());
 
 describe("GET /api/polls/:slug", () => {
-  it("returns counts with no attribution while open, and never cached", async () => {
+  it("returns counts with no attribution while open, revalidated on every request", async () => {
     const response = await getPoll(request("/api/polls/pizza-night"), ctx({ slug: "pizza-night" }));
     const view = (await response.json()) as PublicPollView;
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("cache-control")).toBe("private, no-cache");
     expect(view.totalVotes).toBe(11);
     expect(view.options.every((option) => option.backers === null)).toBe(true);
     expect(view.viewerBallot).toBeNull();
+  });
+
+  it("answers 304 while the caller's copy is current, and 200 once a vote lands", async () => {
+    const first = await getPoll(request("/api/polls/pizza-night"), ctx({ slug: "pizza-night" }));
+    const etag = first.headers.get("etag")!;
+    expect(etag).toMatch(/^W\//);
+    expect(first.headers.get("cache-control")).toBe("private, no-cache");
+
+    const unchanged = await getPoll(request("/api/polls/pizza-night", { ifNoneMatch: etag }), ctx({ slug: "pizza-night" }));
+    expect(unchanged.status).toBe(304);
+    expect(await unchanged.text()).toBe("");
+
+    const ids = await optionIds(holder.connection!, "pizza-night");
+    await castBallot(
+      request("/api/polls/pizza-night/ballots", { body: { ballotId: crypto.randomUUID(), voter: rosa, optionIds: [ids["Margherita from Lupa"]] } }),
+      ctx({ slug: "pizza-night" }),
+    );
+
+    const changed = await getPoll(request("/api/polls/pizza-night", { ifNoneMatch: etag }), ctx({ slug: "pizza-night" }));
+    expect(changed.status).toBe(200);
+    expect(changed.headers.get("etag")).not.toBe(etag);
+    expect(((await changed.json()) as PublicPollView).totalVotes).toBe(12);
   });
 
   it("404s with an error body for an unknown poll", async () => {

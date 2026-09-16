@@ -20,10 +20,15 @@ const ORIGIN = "http://localhost:3000";
 const SAMPLE_PASSWORD = "sample-password-for-tests";
 const ctx = <P extends Record<string, string>>(params: P) => ({ params: Promise.resolve(params) });
 
-function request(path: string, { body, cookie }: { body?: unknown; cookie?: string } = {}) {
+function request(path: string, { body, cookie, ifNoneMatch }: { body?: unknown; cookie?: string; ifNoneMatch?: string } = {}) {
   return new NextRequest(`${ORIGIN}${path}`, {
     method: body === undefined ? "GET" : "POST",
-    headers: { "content-type": "application/json", origin: ORIGIN, ...(cookie ? { cookie } : {}) },
+    headers: {
+      "content-type": "application/json",
+      origin: ORIGIN,
+      ...(cookie ? { cookie } : {}),
+      ...(ifNoneMatch ? { "if-none-match": ifNoneMatch } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -132,6 +137,36 @@ describe("creator endpoints", () => {
 
     const ended = await endVoting(request(`/api/creator/polls/${slug}/end`, { body: {}, cookie }), ctx({ slug }));
     expect(ended.status).toBe(200);
+  });
+
+  it("answer 304 to the owner's poll while unchanged, and 200 after moderation", async () => {
+    const cookie = await logInAsSampleCreator();
+    const first = await getCreatorPoll(request("/api/creator/polls/pizza-night", { cookie }), ctx({ slug: "pizza-night" }));
+    const etag = first.headers.get("etag")!;
+    expect(first.headers.get("cache-control")).toBe("private, no-cache");
+    expect(first.headers.get("vary")).toBe("Cookie");
+
+    const unchanged = await getCreatorPoll(request("/api/creator/polls/pizza-night", { cookie, ifNoneMatch: etag }), ctx({ slug: "pizza-night" }));
+    expect(unchanged.status).toBe(304);
+
+    const optionId = (await optionIds(holder.connection!, "pizza-night"))["Just order salads"];
+    await moderate(request("/x", { body: {}, cookie }), ctx({ slug: "pizza-night", optionId, action: "approve" }));
+
+    const changed = await getCreatorPoll(request("/api/creator/polls/pizza-night", { cookie, ifNoneMatch: etag }), ctx({ slug: "pizza-night" }));
+    expect(changed.status).toBe(200);
+    expect(((await changed.json()) as CreatorPollView).pendingSuggestions).toEqual([]);
+  });
+
+  it("never answer 304 to someone who isn't the owner, even with the right tag", async () => {
+    const owner = await logInAsSampleCreator();
+    const etag = (await getCreatorPoll(request("/api/creator/polls/pizza-night", { cookie: owner }), ctx({ slug: "pizza-night" }))).headers.get("etag")!;
+
+    const signedOut = await getCreatorPoll(request("/api/creator/polls/pizza-night", { ifNoneMatch: etag }), ctx({ slug: "pizza-night" }));
+    const stranger = await getCreatorPoll(
+      request("/api/creator/polls/pizza-night", { cookie: await signUp("etag-stranger@example.com"), ifNoneMatch: etag }),
+      ctx({ slug: "pizza-night" }),
+    );
+    expect([signedOut.status, stranger.status]).toEqual([401, 404]);
   });
 
   it("moderate suggestions for the owner, and refuse unknown actions or ids as 404", async () => {

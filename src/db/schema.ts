@@ -41,6 +41,12 @@ export const polls = pgTable(
     status: pollStatus("status").notNull().default("open"),
     closesAt: timestamp("closes_at", { withTimezone: true }).notNull(),
     settledAt: timestamp("settled_at", { withTimezone: true }),
+    /**
+     * Bumped by every write that changes what the poll's views show (votes,
+     * suggestions, moderation, ending, reopening). Lets polling clients ask
+     * "anything new?" without reloading the whole poll.
+     */
+    revision: integer("revision").notNull().default(0),
     ...timestamps,
   },
   (table) => [

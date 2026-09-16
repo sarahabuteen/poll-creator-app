@@ -1,4 +1,4 @@
-import { and, count, eq, max, or } from "drizzle-orm";
+import { and, count, eq, max, or, sql } from "drizzle-orm";
 import type { Db } from "@/db/connect";
 import { ballots, options, polls, votes } from "@/db/schema";
 import { PollRuleError } from "@/domain/errors";
@@ -35,6 +35,14 @@ async function lockPoll(tx: Db, slug: string): Promise<PollRow> {
   const [poll] = await tx.select().from(polls).where(eq(polls.slug, slug)).for("update");
   if (!poll) throw new PollRuleError("POLL_NOT_FOUND", "Poll not found.");
   return poll;
+}
+
+/** Every write that changes a poll's views calls this inside its transaction. */
+async function bumpRevision(tx: Db, pollId: string) {
+  await tx
+    .update(polls)
+    .set({ revision: sql`${polls.revision} + 1` })
+    .where(eq(polls.id, pollId));
 }
 
 /** Someone else's poll looks exactly like a missing one. */
@@ -145,6 +153,7 @@ export async function castBallot(
       castAt: now,
     });
     await tx.insert(votes).values(optionIds.map((optionId) => ({ ballotId: input.ballotId, optionId })));
+    await bumpRevision(tx, poll.id);
 
     return { ballotId: input.ballotId, optionIds, castAt: now, replayed: false };
   });
@@ -186,6 +195,7 @@ export async function suggestOption(db: Db, slug: string, rawInput: SuggestOptio
         createdAt: now,
       })
       .returning({ id: options.id });
+    await bumpRevision(tx, poll.id);
     return suggestion;
   });
 }
@@ -214,6 +224,7 @@ async function moderate({ slug, creatorId, optionId }: ModerationTarget, db: Db,
       .update(options)
       .set({ suggestionStatus: next.suggestionStatus, decidedAt: next.decidedAt })
       .where(eq(options.id, option.id));
+    await bumpRevision(tx, poll.id);
     return { optionId: option.id, status: next.suggestionStatus, decidedAt: next.decidedAt };
   });
 }
@@ -244,6 +255,7 @@ export async function undoModeration(db: Db, target: ModerationTarget, now = new
       .update(options)
       .set({ suggestionStatus: next.suggestionStatus, decidedAt: next.decidedAt })
       .where(eq(options.id, option.id));
+    await bumpRevision(tx, poll.id);
     return { optionId: option.id, status: next.suggestionStatus };
   });
 }
@@ -253,7 +265,10 @@ export async function endVoting(db: Db, target: { slug: string; creatorId: strin
   return db.transaction(async (tx) => {
     const poll = await lockOwnPoll(tx, target.slug, target.creatorId);
     const next = endVotingRule(poll, now);
-    await tx.update(polls).set({ status: next.status, settledAt: next.settledAt }).where(eq(polls.id, poll.id));
+    await tx
+      .update(polls)
+      .set({ status: next.status, settledAt: next.settledAt, revision: sql`${polls.revision} + 1` })
+      .where(eq(polls.id, poll.id));
     return next;
   });
 }
@@ -269,7 +284,7 @@ export async function reopenVoting(
     const next = reopenVotingRule(poll, target.closesAt, now);
     await tx
       .update(polls)
-      .set({ status: next.status, closesAt: next.closesAt, settledAt: next.settledAt })
+      .set({ status: next.status, closesAt: next.closesAt, settledAt: next.settledAt, revision: sql`${polls.revision} + 1` })
       .where(eq(polls.id, poll.id));
     return next;
   });

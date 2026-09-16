@@ -52,9 +52,34 @@ export function handle<Args extends unknown[]>(fn: (...args: Args) => Promise<Ne
     } catch (error) {
       response = errorResponse(error);
     }
-    response.headers.set("Cache-Control", "no-store");
+    // Responses opt in to revalidation with `revalidateWith`; everything else is never stored.
+    if (!response.headers.has("Cache-Control")) response.headers.set("Cache-Control", "no-store");
     return response;
   };
+}
+
+/**
+ * Lets the browser keep this response but check back every time. With the
+ * ETag it sends If-None-Match, and gets a bodiless 304 when nothing changed.
+ * `private`: creator views must never sit in a shared cache.
+ */
+export function revalidateWith<T extends NextResponse>(response: T, etag: string): T {
+  response.headers.set("ETag", etag);
+  response.headers.set("Cache-Control", "private, no-cache");
+  // Cookies decide who's asking (creator session, voter token).
+  response.headers.set("Vary", "Cookie");
+  return response;
+}
+
+/** True when the client already holds this exact version. */
+export function isNotModified(request: Request, etag: string): boolean {
+  const header = request.headers.get("if-none-match");
+  if (!header) return false;
+  return header.split(",").some((tag) => tag.trim() === etag || tag.trim() === "*");
+}
+
+export function notModified(etag: string): NextResponse {
+  return revalidateWith(new NextResponse(null, { status: 304 }), etag);
 }
 
 export async function readJson(request: Request): Promise<unknown> {

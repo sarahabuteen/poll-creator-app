@@ -8,7 +8,7 @@ async function request<T>(path: `/api/${string}`, init: RequestInit = {}): Promi
   try {
     response = await fetch(path, {
       ...init,
-      cache: "no-store",
+      cache: init.cache ?? "no-store",
       credentials: "same-origin",
       headers: { accept: "application/json", ...(init.body ? { "content-type": "application/json" } : {}), ...init.headers },
     });
@@ -25,8 +25,12 @@ async function request<T>(path: `/api/${string}`, init: RequestInit = {}): Promi
 
 export type ModerationAction = "approve" | "decline" | "undo";
 
+/**
+ * `no-cache` lets the browser revalidate with the poll's ETag: when nothing
+ * has changed the server answers 304 and fetch hands back the stored body.
+ */
 export function fetchCreatorPoll(slug: string, signal?: AbortSignal) {
-  return request<CreatorPollView>(`/api/creator/polls/${encodeURIComponent(slug)}`, { signal });
+  return request<CreatorPollView>(`/api/creator/polls/${encodeURIComponent(slug)}`, { signal, cache: "no-cache" });
 }
 
 export function moderateSuggestion(slug: string, optionId: string, action: ModerationAction) {
