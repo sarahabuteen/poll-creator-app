@@ -7,11 +7,11 @@ import { guestSummary } from "@/lib/guest/views";
 import { useNow } from "@/lib/time";
 
 /**
- * Sample polls only exist in this tab, so there's no vote page to share. Copy
- * link gives the sample poll in guest mode instead: a real link that works for
- * whoever opens it.
+ * The guest vote page. Sample polls live in this browser, so the link works in
+ * any tab here (vote in one, watch the results move in another); on another
+ * device it opens the untouched samples.
  */
-export const guestShareUrl = (appUrl: string, slug: string) => `${appUrl}/guest/polls/${slug}`;
+export const guestShareUrl = (appUrl: string, slug: string) => `${appUrl}/guest/p/${slug}`;
 
 export function GuestDashboard({ show }: { show: "all" | "settled" }) {
   const { data, generatedAt, appUrl } = useGuest();
@@ -28,7 +28,7 @@ export function GuestDashboard({ show }: { show: "all" | "settled" }) {
           {show === "all" ? "My polls" : "Closed polls"}
         </h1>
         <div className="mt-8">
-          <Dashboard polls={polls} appUrl={appUrl} show={show} pollsPath="/guest/polls" sharePath="/guest/polls" />
+          <Dashboard polls={polls} appUrl={appUrl} show={show} pollsPath="/guest/polls" sharePath="/guest/p" />
         </div>
       </main>
     </>

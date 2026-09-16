@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicPollView } from "@/domain/views";
-import { fetchPublicPoll } from "@/lib/api/client";
+import { useVoterBackend } from "@/components/vote/voter-backend";
 
 /** Voters don't watch a race, so a gentle refresh is plenty (and cheap: 304s). */
 const REFRESH_MS = 15_000;
@@ -12,6 +12,7 @@ const REFRESH_MS = 15_000;
  * count, and the moment voting closes (it refreshes right at the deadline).
  */
 export function usePublicPoll(initial: PublicPollView) {
+  const backend = useVoterBackend();
   const [view, setView] = useState(initial);
   const inFlight = useRef<AbortController | null>(null);
   const slug = initial.slug;
@@ -21,13 +22,13 @@ export function usePublicPoll(initial: PublicPollView) {
     const controller = new AbortController();
     inFlight.current = controller;
     try {
-      const result = await fetchPublicPoll(slug, controller.signal);
+      const result = await backend.fetchPoll(slug, controller.signal);
       if (result.ok) setView(result.data);
       return result.ok ? result.data : null;
     } catch {
       return null;
     }
-  }, [slug]);
+  }, [backend, slug]);
 
   const settled = view.status === "settled";
   const closesAt = view.closesAt;

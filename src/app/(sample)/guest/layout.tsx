@@ -21,21 +21,24 @@ export default async function GuestLayout({ children }: LayoutProps<"/guest">) {
 
   return (
     <>
-      <GuestBanner />
       {result.ok ? (
         <GuestProvider initial={{ creator: result.data.creator, polls: result.data.polls }} generatedAt={result.data.generatedAt} appUrl={env().NEXT_PUBLIC_APP_URL}>
+          <GuestBanner />
           {children}
         </GuestProvider>
       ) : (
-        <main id="main" className="mx-auto w-full max-w-content px-4 py-10 sm:px-6">
-          <FormAlert>
-            The sample polls didn&rsquo;t load.{" "}
-            <a href="/guest" className="font-bold underline underline-offset-2">
-              Try again
-            </a>
-            .
-          </FormAlert>
-        </main>
+        <>
+          <GuestBanner />
+          <main id="main" className="mx-auto w-full max-w-content px-4 py-10 sm:px-6">
+            <FormAlert>
+              The sample polls didn&rsquo;t load.{" "}
+              <a href="/guest" className="font-bold underline underline-offset-2">
+                Try again
+              </a>
+              .
+            </FormAlert>
+          </main>
+        </>
       )}
     </>
   );

@@ -23,7 +23,7 @@ A full-stack build: creators sign up, make a poll in under a minute and paste a 
 - **Suggestions and moderation** with "Add it" (joins with 0 votes), "Not this time", and undo.
 - **Live results**: a per-voter tally for the leader, pack bars relative to the leader, counts beside every percentage, ties in words, throttled screen-reader updates.
 - **Closing and the reveal**: auto-close at the deadline, End voting, Reopen voting with a new closing time, Copy result, and a designed tie.
-- **Guest mode** at `/guest`: the real organiser screens over the sample polls, fully interactive, nothing saved.
+- **Guest mode** at `/guest`: the real organiser screens and vote page over the sample polls, fully interactive, saved only in your browser. Copy a guest poll's link, vote in another tab, and watch the organiser tab update live.
 - **Dark mode**, designed 404 and error pages, empty states and loading skeletons.
 - WCAG 2.2 AA throughout, checked by an automated browser suite in both themes.
 
@@ -131,7 +131,7 @@ Under the hood, every poll rule is a pure function in [`src/domain/rules.ts`](sr
 - **Cast my vote** is `aria-disabled` rather than disabled until there's a name and a choice, so it stays focusable and can explain what's missing.
 - **Errors never use tangerine or butter** (they mean winning). Errors are cocoa text, an icon and plain words, and failures keep what the voter entered.
 - **Dark mode** is a lamplit deep-cocoa version with the same color roles, following the system setting or the header toggle. Every color pair in both themes is checked by [`scripts/check-contrast.mjs`](scripts/check-contrast.mjs).
-- **Guest mode** runs the real screens and the real rules engine in the browser over the sample polls, with timestamps shifted to the moment you open it, so pizza night always "closes today".
+- **Guest mode** runs the real screens and the real rules engine in the browser over the sample polls, with timestamps shifted to the moment you open it, so pizza night always "closes today". Changes are kept in `localStorage` and shared between tabs, so a guest vote link (`/guest/p/<poll>`) works like the real one; "Start over" restores the samples, and they refresh on their own after 12 hours.
 - **Search and link previews:** vote links are `noindex` (they're private to whoever has them), but they unfurl in the chat with the poll's title, a description that follows the attribution rule (no counts while voting is open, the result once settled) and a branded preview image. The public pages (`/guest`, `/signup`, `/login`) have canonical URLs and are listed in `sitemap.xml`; `robots.txt` keeps crawlers out of the API and creator screens.
 - **Status screens:** designed 404s that are never a dead end, an error page with a retry, empty states that say what will appear, and loading skeletons shaped like the page that's coming.
 
@@ -278,6 +278,7 @@ The vote page's SEO score misses only the meta description: its metadata depends
 - **Log-in rate limiting** from Better Auth counts in memory per server instance.
 - **The client IP for rate limits** comes from `x-forwarded-for`, which is trustworthy on Vercel but could be spoofed on a host that passes it through untouched.
 - **Guest mode's sample data** includes who voted for what on open polls, so the reveal can play in the browser. Every name there is invented sample data.
+- **Guest vote links only work in the browser that copied them.** Guest polls never reach the server, so on another device the link opens the untouched samples, and one browser can vote once per sample poll until "Start over".
 
 ---
 

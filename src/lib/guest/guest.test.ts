@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import raw from "../../../data/sample-polls.json";
 import type { SampleData } from "@/db/sample-types";
 import { UNDO_WINDOW_MS } from "@/domain/rules";
-import { guestApprove, guestDecline, guestEndVoting, guestReopenVoting, guestUndo } from "./actions";
+import { guestApprove, guestCastBallot, guestDecline, guestEndVoting, guestReopenVoting, guestSuggest, guestUndo } from "./actions";
+import { parseStoredGuest } from "./storage";
 import { SAMPLE_NOW, shiftSampleData, type GuestPoll } from "./shift";
-import { guestCreatorView, guestSummary } from "./views";
+import { guestCreatorView, guestPublicView, guestSummary } from "./views";
 
 const NOW = new Date("2030-01-01T12:00:00Z");
 const at = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
@@ -76,5 +77,71 @@ describe("guest actions (the real rules, in the browser)", () => {
     expect(guestReopenVoting(ended, at(2), at(1))).toMatchObject({ ok: false, code: "CLOSING_TIME_INVALID" });
     const reopened = unwrap(guestReopenVoting(ended, at(90), at(1)));
     expect(guestCreatorView(reopened, at(2))).toMatchObject({ status: "open", closesAt: at(90).toISOString() });
+  });
+});
+
+describe("guest voting (the vote page, in the browser)", () => {
+  const kiki = { name: "Kiki", avatar: { seed: "Felix", tint: "f8c9b9" as const } };
+  const ballot = (overrides: Partial<Parameters<typeof guestCastBallot>[1]> = {}) => ({
+    ballotId: "ballot-1",
+    voterToken: "guest-token-0000000001",
+    voter: kiki,
+    optionIds: ["jaws"],
+    ...overrides,
+  });
+
+  it("counts a vote, shows it to the organiser, and gives the voter their own ballot back", () => {
+    const voted = unwrap(guestCastBallot(poll("friday-film-club"), ballot(), NOW));
+    const organiser = guestCreatorView(voted, NOW);
+    expect(organiser.voters[0]).toMatchObject({ name: "Kiki" });
+    expect(organiser.totalVotes).toBe(guestCreatorView(poll("friday-film-club"), NOW).totalVotes + 1);
+
+    const mine = guestPublicView(voted, NOW, "guest-token-0000000001");
+    expect(mine.viewerBallot).toEqual({ optionIds: ["jaws"], castAt: NOW.toISOString() });
+    expect(mine).not.toHaveProperty("pendingSuggestions");
+    expect(guestPublicView(voted, NOW, "someone-else-0000001").viewerBallot).toBeNull();
+    // Attribution stays hidden while voting is open.
+    expect(mine.options.every((option) => option.backers === null)).toBe(true);
+  });
+
+  it("allows one ballot per browser, and a retry of the same ballot counts once", () => {
+    const voted = unwrap(guestCastBallot(poll("friday-film-club"), ballot(), NOW));
+    expect(unwrap(guestCastBallot(voted, ballot(), at(1))).votes).toHaveLength(voted.votes.length);
+    expect(guestCastBallot(voted, ballot({ ballotId: "ballot-2", optionIds: ["heat"] }), at(1))).toMatchObject({ ok: false, code: "ALREADY_VOTED" });
+  });
+
+  it("refuses what the vote API refuses", () => {
+    expect(guestCastBallot(poll("meal-out"), ballot({ optionIds: ["thu-24-sep"] }), NOW)).toMatchObject({ ok: false, code: "POLL_SETTLED" });
+    expect(guestCastBallot(poll("friday-film-club"), ballot({ optionIds: ["jaws", "heat"] }), NOW)).toMatchObject({ ok: false, code: "INVALID_CHOICE" });
+    expect(guestCastBallot(poll("pizza-night"), ballot({ optionIds: ["salads"] }), NOW)).toMatchObject({ ok: false, code: "INVALID_CHOICE" });
+    expect(guestCastBallot(poll("friday-film-club"), ballot({ voter: { ...kiki, name: "  " } }), NOW)).toMatchObject({ ok: false, code: "INVALID_INPUT" });
+    const two = unwrap(guestCastBallot(poll("birthday-brunch"), ballot({ optionIds: ["marlowe", "francas"] }), NOW));
+    expect(guestCreatorView(two, NOW).totalVotes).toBe(2);
+  });
+
+  it("sends a suggestion to the organiser's queue, not onto the ballot", () => {
+    const suggestion = { id: "s1", label: "  Paddington 2 ", suggestedBy: kiki, voterToken: "guest-token-0000000001" };
+    const suggested = unwrap(guestSuggest(poll("friday-film-club"), suggestion, NOW));
+    expect(guestCreatorView(suggested, NOW).pendingSuggestions).toEqual([
+      { id: "s1", label: "Paddington 2", suggestedBy: kiki, createdAt: NOW.toISOString() },
+    ]);
+    expect(guestPublicView(suggested, NOW, null).options.map((option) => option.label)).not.toContain("Paddington 2");
+    expect(guestSuggest(suggested, { ...suggestion, id: "s2", label: "paddington 2" }, NOW)).toMatchObject({ ok: false, code: "DUPLICATE_OPTION" });
+    expect(guestSuggest(poll("meal-out"), suggestion, NOW)).toMatchObject({ ok: false, code: "POLL_SETTLED" });
+  });
+});
+
+describe("parseStoredGuest", () => {
+  const stored = { savedAt: NOW.getTime(), data, ended: [] };
+
+  it("reads back what guest mode saved", () => {
+    expect(parseStoredGuest(JSON.stringify(stored), NOW.getTime())).toEqual(stored);
+  });
+
+  it("ignores missing, broken and stale data", () => {
+    expect(parseStoredGuest(null, NOW.getTime())).toBeNull();
+    expect(parseStoredGuest("{not json", NOW.getTime())).toBeNull();
+    expect(parseStoredGuest(JSON.stringify({ savedAt: NOW.getTime() }), NOW.getTime())).toBeNull();
+    expect(parseStoredGuest(JSON.stringify(stored), at(13 * 60).getTime())).toBeNull();
   });
 });

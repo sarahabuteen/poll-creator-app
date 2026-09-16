@@ -5,15 +5,19 @@ import { guestShareUrl } from "@/components/guest/guest-dashboard";
 import { useGuest } from "@/components/guest/guest-provider";
 import { PollLiveView } from "@/components/poll/poll-live-view";
 import { CreatorResult } from "@/components/reveal/creator-result";
+import { GuestPageSkeleton } from "@/components/guest/guest-skeleton";
 import { SiteHeader } from "@/components/site-header";
 import { guestCreatorView } from "@/lib/guest/views";
 import { useNow } from "@/lib/time";
 
 /** A sample poll on the organiser's real screens: live results, moderation, ending, the reveal. */
 export function GuestPoll({ slug }: { slug: string }) {
-  const { data, generatedAt, appUrl, revealKeyFor } = useGuest();
+  const { data, generatedAt, appUrl, ready, revealKeyFor } = useGuest();
   const now = new Date(useNow() ?? generatedAt);
   const poll = data.polls.find((item) => item.id === slug);
+
+  // The live screen keeps its own copy of the poll, so wait for this browser's saved samples.
+  if (!ready) return <GuestPageSkeleton label="Loading the sample poll…" />;
 
   if (!poll) {
     return (

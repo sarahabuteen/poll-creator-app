@@ -1,4 +1,4 @@
-import type { SampleData, SamplePoll, SamplePollOption } from "@/db/sample-types";
+import type { SampleData, SamplePoll, SamplePollOption, SampleVote } from "@/db/sample-types";
 
 /**
  * The sample timestamps are written as if "now" is this instant (see
@@ -7,9 +7,11 @@ import type { SampleData, SamplePoll, SamplePollOption } from "@/db/sample-types
  */
 export const SAMPLE_NOW = Date.parse("2026-09-17T15:00:00Z");
 
-/** A sample option that can carry a guest's moderation decision. */
-export type GuestOption = SamplePollOption & { decidedAt?: string | null };
-export type GuestPoll = Omit<SamplePoll, "options"> & { options: GuestOption[] };
+/** A sample option that can carry a guest's moderation decision, or be a guest's own suggestion. */
+export type GuestOption = SamplePollOption & { decidedAt?: string | null; createdAt?: string; suggestedByToken?: string };
+/** A vote, plus the ballot it came from when a guest cast it (so a retry counts once). */
+export type GuestVote = SampleVote & { ballotId?: string };
+export type GuestPoll = Omit<SamplePoll, "options" | "votes"> & { options: GuestOption[]; votes: GuestVote[] };
 export type GuestData = { creator: SampleData["creator"]; polls: GuestPoll[] };
 
 export function shiftSampleData(data: SampleData, now: number): GuestData {

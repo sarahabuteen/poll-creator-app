@@ -76,7 +76,8 @@ export function Ballot({ options, voteType, maxChoices, selected, onChange, erro
                 {option.suggestedBy && (
                   <span className="mt-1 flex items-center gap-1.5 text-sm text-cocoa-soft">
                     <Avatar person={option.suggestedBy} size={20} />
-                    Suggested by {option.suggestedBy.name}
+                    {/* Its own box, so at large text sizes on a narrow phone the words can wrap instead of pushing the page wide. */}
+                    <span className="min-w-0 [overflow-wrap:anywhere]">Suggested by {option.suggestedBy.name}</span>
                   </span>
                 )}
               </span>

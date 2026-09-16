@@ -13,18 +13,19 @@ import { SuggestDialog } from "@/components/vote/suggest-dialog";
 import { usePublicPoll } from "@/components/vote/use-public-poll";
 import { VotedState } from "@/components/vote/voted-state";
 import type { PublicPollView } from "@/domain/views";
-import { castBallot, failureCopy } from "@/lib/api/client";
+import { useVoterBackend } from "@/components/vote/voter-backend";
+import { failureCopy } from "@/lib/api/client";
 import { castLabel, listNames } from "@/lib/vote/copy";
 import { DEFAULT_IDENTITY, FACE_SEEDS, identityAsPerson, NAME_MAX_LENGTH, TINTS, type Identity } from "@/lib/vote/presets";
 
 type Errors = { name?: string; ballot?: string };
 
 /** The face a browser voted with, remembered locally so a return visit can greet them. */
-const rememberKey = (slug: string) => `tiebreak:voted-as:${slug}`;
+const rememberKey = (prefix: string, slug: string) => `${prefix}:voted-as:${slug}`;
 
-function readRemembered(slug: string): Identity | null {
+function readRemembered(prefix: string, slug: string): Identity | null {
   try {
-    const value = JSON.parse(localStorage.getItem(rememberKey(slug)) ?? "null") as Identity | null;
+    const value = JSON.parse(localStorage.getItem(rememberKey(prefix, slug)) ?? "null") as Identity | null;
     const valid =
       value &&
       typeof value.name === "string" &&
@@ -36,9 +37,9 @@ function readRemembered(slug: string): Identity | null {
   }
 }
 
-function remember(slug: string, identity: Identity) {
+function remember(prefix: string, slug: string, identity: Identity) {
   try {
-    localStorage.setItem(rememberKey(slug), JSON.stringify(identity));
+    localStorage.setItem(rememberKey(prefix, slug), JSON.stringify(identity));
   } catch {
     // Private mode or blocked storage: the page works without it.
   }
@@ -50,6 +51,7 @@ function remember(slug: string, identity: Identity) {
  * states plainly what it is, and the state is announced on load.
  */
 export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollView; shareUrl: string }) {
+  const backend = useVoterBackend();
   const { view, refresh } = usePublicPoll(initial);
   const [identity, setIdentity] = useState<Identity>(DEFAULT_IDENTITY);
   const [remembered, setRemembered] = useState<Identity | null>(null);
@@ -81,9 +83,9 @@ export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollVi
 
   // Read localStorage after mount only, so the server and first client render match.
   useEffect(() => {
-    const timer = setTimeout(() => setRemembered(readRemembered(initial.slug)), 0);
+    const timer = setTimeout(() => setRemembered(readRemembered(backend.storagePrefix, initial.slug)), 0);
     return () => clearTimeout(timer);
-  }, [initial.slug]);
+  }, [backend.storagePrefix, initial.slug]);
 
   // Screen-reader users should never wonder why the ballot is missing.
   useEffect(() => {
@@ -135,7 +137,7 @@ export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollVi
     setCastFailure(null);
     ballotId.current ??= crypto.randomUUID();
 
-    const result = await castBallot(view.slug, {
+    const result = await backend.castBallot(view.slug, {
       ballotId: ballotId.current,
       voter: identityAsPerson(identity),
       optionIds: liveSelection,
@@ -143,7 +145,7 @@ export function VoteExperience({ poll: initial, shareUrl }: { poll: PublicPollVi
     setCasting(false);
 
     if (result.ok) {
-      remember(view.slug, identity);
+      remember(backend.storagePrefix, view.slug, identity);
       setRemembered(identity);
       setLocalBallot(result.data.optionIds);
       setConfirming(false);

@@ -1,5 +1,6 @@
 import { effectiveState, isOnBallot, UNDO_WINDOW_MS } from "@/domain/rules";
-import type { BallotOptionView, CreatorPollSummary, CreatorPollView, Person, SuggestionView } from "@/domain/views";
+import type { BallotOptionView, CreatorPollSummary, CreatorPollView, Person, PublicPollView, SuggestionView } from "@/domain/views";
+import { guestViewerBallot } from "./actions";
 import { deriveResults } from "@/lib/results";
 import type { GuestOption, GuestPoll } from "./shift";
 
@@ -45,7 +46,7 @@ export function guestCreatorView(poll: GuestPoll, now: Date): CreatorPollView {
     id: option.id,
     label: option.label,
     suggestedBy: option.suggestedBy!,
-    createdAt: poll.createdAt,
+    createdAt: option.createdAt ?? poll.createdAt,
   });
 
   return {
@@ -97,4 +98,11 @@ export function guestSummary(poll: GuestPoll, now: Date): CreatorPollSummary {
     pendingSuggestions: view.status === "open" ? view.pendingSuggestions.length : 0,
     leaders: leaders.map((leader) => ({ label: leader.option.label, votes: leader.votes })),
   };
+}
+
+/** The vote page's view of a guest poll, matching GET /api/polls/:slug for this browser. */
+export function guestPublicView(poll: GuestPoll, now: Date, voterToken: string | null): PublicPollView {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { audience, pendingSuggestions, undoableDecisions, ...shared } = guestCreatorView(poll, now);
+  return { ...shared, audience: "public", viewerBallot: guestViewerBallot(poll, voterToken) };
 }

@@ -1,11 +1,16 @@
 import { isPollRuleError, PollRuleError, type PollRuleCode } from "@/domain/errors";
+import { parseInput, personInput, suggestOptionInput } from "@/domain/inputs";
 import {
+  assertCanAddOption,
   assertOpen,
+  assertSuggestionQuota,
   decideSuggestion,
   endVoting as endVotingRule,
   reopenVoting as reopenVotingRule,
   undoDecision,
+  validateChoices,
 } from "@/domain/rules";
+import type { Person } from "@/domain/views";
 import type { GuestOption, GuestPoll } from "./shift";
 
 /**
@@ -78,4 +83,67 @@ export function guestReopenVoting(poll: GuestPoll, closesAt: Date, now: Date): G
     const next = reopenVotingRule(state(poll), closesAt, now);
     return { ...poll, status: next.status, closesAt: next.closesAt.toISOString(), settledAt: null };
   });
+}
+
+const onBallotState = (option: GuestOption) => ({
+  id: option.id,
+  source: option.source,
+  suggestionStatus: option.suggestionStatus ?? null,
+});
+
+export type GuestBallot = { ballotId: string; voterToken: string; voter: Person; optionIds: string[] };
+
+/** Casting a vote, by the same rules as POST /api/polls/:slug/ballots: one ballot per browser, votes final. */
+export function guestCastBallot(poll: GuestPoll, ballot: GuestBallot, now: Date): GuestActionResult {
+  return attempt(() => {
+    const mine = poll.votes.filter((vote) => vote.voterToken === ballot.voterToken);
+    // A retry of the same ballot is recognised, even after voting closed.
+    if (mine.length > 0 && mine.every((vote) => vote.ballotId === ballot.ballotId)) return poll;
+    if (mine.length > 0) throw new PollRuleError("ALREADY_VOTED", "This browser has already voted on this poll.");
+
+    assertOpen(state(poll), now);
+    const voter = parseInput(personInput, ballot.voter);
+    const optionIds = validateChoices({ voteType: poll.type, maxChoices: poll.maxChoices }, poll.options.map(onBallotState), ballot.optionIds);
+    const castAt = now.toISOString();
+    return {
+      ...poll,
+      votes: [...poll.votes, ...optionIds.map((optionId) => ({ optionId, voter, voterToken: ballot.voterToken, castAt, ballotId: ballot.ballotId }))],
+    };
+  });
+}
+
+/** Suggesting an option, by the same rules as POST /api/polls/:slug/suggestions. */
+export function guestSuggest(
+  poll: GuestPoll,
+  suggestion: { id: string; label: string; suggestedBy: Person; voterToken: string },
+  now: Date,
+): GuestActionResult {
+  return attempt(() => {
+    const input = parseInput(suggestOptionInput, suggestion);
+    assertOpen(state(poll), now);
+    if (!poll.suggestionsEnabled) throw new PollRuleError("SUGGESTIONS_DISABLED", "This poll isn't taking suggestions.");
+    assertCanAddOption(poll.options.map((option) => ({ ...onBallotState(option), label: option.label })), input.label);
+    const pending = poll.options.filter((option) => option.suggestionStatus === "pending");
+    assertSuggestionQuota({
+      pendingForVoter: pending.filter((option) => option.suggestedByToken === input.voterToken).length,
+      pendingForPoll: pending.length,
+    });
+    const added: GuestOption = {
+      id: suggestion.id,
+      label: input.label,
+      source: "suggestion",
+      suggestionStatus: "pending",
+      suggestedBy: input.suggestedBy,
+      suggestedByToken: input.voterToken,
+      createdAt: now.toISOString(),
+      decidedAt: null,
+    };
+    return { ...poll, options: [...poll.options, added] };
+  });
+}
+
+/** The ballot a browser cast, if any, as the public view reports it. */
+export function guestViewerBallot(poll: GuestPoll, voterToken: string | null) {
+  const mine = voterToken ? poll.votes.filter((vote) => vote.voterToken === voterToken) : [];
+  return mine.length > 0 ? { optionIds: mine.map((vote) => vote.optionId), castAt: mine[0].castAt } : null;
 }

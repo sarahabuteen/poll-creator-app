@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { FormAlert } from "@/components/forms/form-alert";
 import { TextField } from "@/components/forms/text-field";
 import { SheetDialog } from "@/components/vote/sheet-dialog";
-import { failureCopy, suggestOption } from "@/lib/api/client";
+import { useVoterBackend } from "@/components/vote/voter-backend";
+import { failureCopy } from "@/lib/api/client";
 import { identityAsPerson, NAME_MAX_LENGTH, SUGGESTION_MAX_LENGTH, type Identity } from "@/lib/vote/presets";
 
 type SuggestDialogProps = {
@@ -23,6 +24,7 @@ type SuggestDialogProps = {
 
 /** "Suggest something else": goes to the organiser, not straight onto the ballot. */
 export function SuggestDialog({ open, slug, identity, onIdentityChange, onClose, onSent, onStale, askForName }: SuggestDialogProps) {
+  const backend = useVoterBackend();
   const [label, setLabel] = useState("");
   const [errors, setErrors] = useState<{ name?: string; label?: string }>({});
   const [failure, setFailure] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function SuggestDialog({ open, slug, identity, onIdentityChange, onClose,
     if (firstInvalid) return document.getElementById(firstInvalid)?.focus();
 
     setPending(true);
-    const result = await suggestOption(slug, { label: label.trim(), suggestedBy: identityAsPerson(identity) });
+    const result = await backend.suggest(slug, { label: label.trim(), suggestedBy: identityAsPerson(identity) });
     setPending(false);
 
     if (result.ok) {

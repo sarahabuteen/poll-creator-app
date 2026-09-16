@@ -5,7 +5,7 @@ import { expectAccessible, logInAsSampleCreator } from "./helpers";
 test.use({ reducedMotion: "reduce" });
 
 test.describe("public pages", () => {
-  for (const path of ["/login", "/signup", "/guest", "/guest/closed", "/guest/polls/pizza-night", "/guest/polls/meal-out", "/p/meal-out"]) {
+  for (const path of ["/login", "/signup", "/guest", "/guest/closed", "/guest/polls/pizza-night", "/guest/polls/meal-out", "/guest/p/friday-film-club", "/guest/p/meal-out", "/p/meal-out"]) {
     test(`${path} has no axe violations`, async ({ page }) => {
       await page.goto(path);
       await expect(page.locator("main:not([aria-busy])")).toBeVisible();
@@ -43,7 +43,7 @@ test.describe("public pages", () => {
 
   test("every page has a unique, descriptive title", async ({ page }) => {
     const titles = new Map<string, string>();
-    for (const path of ["/login", "/signup", "/guest", "/guest/closed", "/guest/polls/pizza-night", "/guest/polls/meal-out", "/p/pizza-night", "/p/meal-out"]) {
+    for (const path of ["/login", "/signup", "/guest", "/guest/closed", "/guest/polls/pizza-night", "/guest/polls/meal-out", "/guest/p/friday-film-club", "/p/pizza-night", "/p/meal-out"]) {
       await page.goto(path);
       titles.set(path, await page.title());
     }
