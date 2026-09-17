@@ -95,7 +95,7 @@ export function ClosingTimeField({ closing, error, legend = "Voting closes", idP
             min={toDateTimeLocal(new Date(now.getTime() + 5 * 60_000))}
             onChange={(event) => setCustom(event.target.value)}
             aria-invalid={error ? true : undefined}
-            className={`mt-1.5 block min-h-12 rounded-md bg-cream px-4 text-base ${error ? "border-[2.5px]" : "border-2"} border-cocoa`}
+            className={`mt-1.5 block min-h-12 rounded-md bg-cream px-4 text-md ${error ? "border-[2.5px]" : "border-2"} border-cocoa`}
           />
         </div>
       )}

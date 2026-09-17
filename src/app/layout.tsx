@@ -51,7 +51,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${gabarito.variable} ${karla.variable} h-full antialiased`}
+      className={`${gabarito.variable} ${karla.variable} h-full antialiased max-sm:scroll-pb-40`}
+      // max-sm:scroll-pb-40: phones have sticky bottom bars (Cast my vote, Create poll), so keyboard focus scrolls to stay above them.
       // An explicit theme choice is rendered by the server, so the first paint is already right.
       data-theme={theme}
       // The theme toggle changes data-theme after hydration.

@@ -34,7 +34,7 @@ const pairs = [
   ["creamBright", "tangerine", 3, "large text on leader card"],
   ["cream", "teal", 4.5, "label on teal buttons (Add it, Send)"],
   ["cream", "cocoa", 4.5, "label on cocoa buttons (Copy link)"],
-  ["tealDeep", "tealSoft", 4.5, "Voting open pill, selected options"],
+  ["tealDeep", "tealSoft", 4.5, "Voting open pill, selected options, \"Suggested by\" on a selected ballot row"],
   ["cocoa", "tealSoft", 4.5, "option label on selected ballot row"],
   ["ink", "butter", 4.5, "ribbons, waiting badge, guest banner"],
   ["ink", "creamBright", 4.5, "tie button label"],

@@ -174,7 +174,7 @@ export function CreatePollForm() {
                       aria-invalid={rowError ? true : undefined}
                       aria-describedby={rowError ? `option-${index}-error` : undefined}
                       placeholder={index === 0 ? "Detroit-style from Emmy's" : index === 1 ? "Pepperoni from Slice House" : ""}
-                      className={`min-h-12 w-full rounded-md bg-cream px-4 text-base placeholder:text-cocoa-soft ${
+                      className={`min-h-12 w-full rounded-md bg-cream px-4 text-md placeholder:text-cocoa-soft ${
                         rowError ? "border-[2.5px] border-cocoa" : "border-2 border-cocoa"
                       }`}
                     />
@@ -281,7 +281,7 @@ export function CreatePollForm() {
                   }}
                   aria-invalid={errors.maxChoices ? true : undefined}
                   aria-describedby={errors.maxChoices ? "max-choices-error" : undefined}
-                  className={`min-h-12 w-24 rounded-md bg-cream px-4 text-base tabular-nums ${errors.maxChoices ? "border-[2.5px]" : "border-2"} border-cocoa`}
+                  className={`min-h-12 w-24 rounded-md bg-cream px-4 text-md tabular-nums ${errors.maxChoices ? "border-[2.5px]" : "border-2"} border-cocoa`}
                 />
                 <span className="text-sm text-cocoa-soft">options</span>
               </div>

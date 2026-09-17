@@ -34,7 +34,7 @@ export function TextField({ id, label, hint, error, inputRef, trailing, classNam
           ref={inputRef}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={`min-h-12 w-full rounded-md bg-card px-4 text-base text-cocoa placeholder:text-cocoa-soft ${
+          className={`min-h-12 w-full rounded-md bg-card px-4 text-md text-cocoa placeholder:text-cocoa-soft ${
             error ? "border-[2.5px] border-cocoa" : "border-2 border-cocoa"
           } ${trailing ? "pr-14" : ""} ${className}`}
           {...input}

@@ -74,7 +74,7 @@ export function Ballot({ options, voteType, maxChoices, selected, onChange, erro
               <span className="min-w-0 flex-1">
                 <span className="block text-md font-extrabold text-cocoa">{option.label}</span>
                 {option.suggestedBy && (
-                  <span className="mt-1 flex items-center gap-1.5 text-sm text-cocoa-soft">
+                  <span className={`mt-1 flex items-center gap-1.5 text-sm ${checked ? "text-teal-deep" : "text-cocoa-soft"}`}>
                     <Avatar person={option.suggestedBy} size={20} />
                     {/* Its own box, so at large text sizes on a narrow phone the words can wrap instead of pushing the page wide. */}
                     <span className="min-w-0 [overflow-wrap:anywhere]">Suggested by {option.suggestedBy.name}</span>
